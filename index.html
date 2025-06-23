@@ -1,0 +1,2672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SafeStay Checklist - Your Safety Partner</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Inter Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Lucide Icons for aesthetic appeal -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+    <style>
+        /* Chosen Palette: Calm Harmony */
+        /* Primary Background: #F8F7F4 (a warm neutral off-white) */
+        /* Secondary Backgrounds/Cards: #FFFFFF, #FDFDFB */
+        /* Primary Accent: #3B82F6 (Blue-500 from Tailwind) */
+        /* Secondary Accent: #22C55E (Green-500 from Tailwind) */
+        /* Text Colors: #1F2937 (gray-900), #4B5563 (gray-700), #6B7280 (gray-500) */
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F8F7F4; /* Warm neutral off-white */
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Common card styling */
+        .container-card {
+            background-color: #FFFFFF;
+            border-radius: 1.5rem; /* rounded-xl */
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); /* shadow-xl */
+            padding: 2.5rem; /* p-10 */
+        }
+
+        /* Page section hiding */
+        .page-section {
+            display: none;
+            flex-grow: 1; /* Allow content to grow */
+            width: 100%;
+            align-items: flex-start; /* Align content to top within flex container */
+            justify-content: center; /* Center horizontally */
+            padding-top: 5rem; /* Space for fixed header */
+            padding-bottom: 2rem;
+        }
+        .page-section.active {
+            display: flex;
+            flex-direction: column; /* Stack content vertically */
+        }
+
+        /* Message Box Styling */
+        #messageBoxOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        #messageBoxOverlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        #messageBox {
+            background-color: #ffffff;
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+            transform: translateY(20px);
+            opacity: 0;
+            transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+        }
+        #messageBoxOverlay.active #messageBox {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        #messageBoxTitle {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #1F2937;
+        }
+        #messageBoxContent {
+            margin-bottom: 1.5rem;
+            color: #4B5563;
+        }
+        #messageBoxButtons button {
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out;
+        }
+        #messageBoxButtons .ok-button {
+            background-color: #3B82F6; /* blue-500 */
+            color: white;
+        }
+        #messageBoxButtons .ok-button:hover {
+            background-color: #2563eb; /* blue-600 */
+        }
+        #messageBoxButtons .cancel-button {
+            background-color: #EF4444; /* red-500 */
+            color: white;
+            margin-left: 1rem;
+        }
+        #messageBoxButtons .cancel-button:hover {
+            background-color: #DC2626; /* red-600 */
+        }
+
+        /* Checklist item styling */
+        .checklist-item-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem;
+            background-color: #FDFDFB; /* Slightly off-white for list items */
+            border-radius: 0.75rem; /* rounded-lg */
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); /* shadow-sm */
+            border: 1px solid #E5E7EB; /* gray-200 */
+            transition: background-color 0.2s ease;
+        }
+        .checklist-item-wrapper.completed {
+            background-color: #F0FDF4; /* Light green for completed */
+            border-color: #D1FAE5; /* Lighter green border */
+        }
+        .checklist-item-wrapper.completed .item-text {
+            text-decoration: line-through;
+            color: #6B7280; /* gray-500 */
+        }
+
+        /* Chart container styling */
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 700px; /* Max width for chart */
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px; /* Base height */
+            max-height: 400px; /* Max height */
+            background-color: #ffffff;
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            padding: 1rem;
+            display: flex; /* To center canvas if needed */
+            justify-content: center;
+            align-items: center;
+        }
+
+        @media (max-width: 768px) {
+            .chart-container {
+                height: 300px; /* Smaller height on mobile */
+                max-height: 350px;
+                padding: 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen">
+    <!-- Application Structure Plan:
+    The application follows a dashboard-first information architecture for authenticated users, reflecting the "micro-SaaS" nature.
+    Public-facing pages (Landing, Features, Pricing) serve as marketing and lead generation.
+    Upon login/signup, the user is directed to a "Profile/Dashboard" which acts as the central hub. From here, users can
+    access their properties, manage them, or dive into specific checklists.
+    - **Home Page:** New entry point for all users, highlights features/value.
+    - **Auth Page:** Contains Login and Signup forms, accessed from Home or header.
+    - **User Details Page:** On first signup, collects essential user and initial property data. Ensures a personalized start.
+    - **Profile/Dashboard Page:** The core interactive hub. Displays user summary and a dynamic list of properties.
+      - Properties are the primary interactive elements, allowing direct actions (Generate Checklist, Edit, Delete).
+      - This reduces navigation steps for common tasks.
+    - **Add/Edit Property Modal:** A pop-up for adding new properties or editing existing ones, keeping the user context on the Profile page.
+    - **Checklist Page:** Dedicated view for interacting with a specific property's safety checklist. Offers simulated actions.
+    - **Features & Pricing Pages:** Static informational pages, accessible from the public header, providing deeper product understanding.
+    - **Settings Page:** For managing user account details.
+    This structure was chosen to provide a clear, linear flow for onboarding (signup -> details -> dashboard) and then a central, actionable dashboard for recurring tasks, reducing cognitive load and maximizing efficiency. Public pages are kept separate to focus on their marketing objective without user login distractions.
+    -->
+    <!-- Visualization & Content Choices:
+    - **Home Page:**
+        - Report Info: Value Proposition, Call to Action, Core Benefits
+        - Goal: Inform, Persuade
+        - Viz/Presentation: Hero section with strong headline, descriptive text, image placeholder. Feature overview with text and Unicode icons. Testimonials as text blocks.
+        - Interaction: Buttons to navigate to Login/Signup, Features, Pricing.
+        - Justification: Standard marketing page elements, clear hierarchy for quick understanding.
+        - Library/Method: HTML/CSS (Tailwind).
+    - **Profile/Dashboard Page:**
+        - Report Info: User's properties, property status, quick actions.
+        - Goal: Inform, Enable Action, Organize
+        - Viz/Presentation: User profile summary (text, placeholder image). Dynamic list of property cards (HTML/CSS).
+        - Interaction: Clickable buttons on each property card (Generate Checklist, Edit, Delete). "Add New Property" button.
+        - Justification: Centralizes property management, direct action buttons reduce clicks. Real-time updates via mock data.
+        - Library/Method: HTML/CSS (Tailwind), JS for dynamic rendering and events.
+    - **Add/Edit Property Modal:**
+        - Report Info: Property attributes (address, type, size, occupancy).
+        - Goal: Data Input/Update
+        - Viz/Presentation: Form inputs (text, select, number).
+        - Interaction: Form submission, validation, close button.
+        - Justification: Modals are ideal for short, focused tasks without navigating away.
+        - Library/Method: HTML/CSS (Tailwind), JS for form handling.
+    - **Checklist Page:**
+        - Report Info: Specific safety items, completion status.
+        - Goal: Task Completion, Status Tracking
+        - Viz/Presentation: List of checklist items with checkboxes and text.
+        - Interaction: Toggle checkbox to mark item complete, mock buttons for PDF/Share.
+        - Justification: Clear list format for tasks, immediate feedback on completion.
+        - Library/Method: HTML/CSS (Tailwind), JS for checkbox state.
+    - **Settings Page:**
+        - Report Info: User profile details (editable), account options.
+        - Goal: Account Management
+        - Viz/Presentation: Form inputs for profile fields, static text for read-only.
+        - Interaction: Form submission to update profile.
+        - Justification: Standard settings layout for managing user information.
+        - Library/Method: HTML/CSS (Tailwind), JS for form handling.
+    - **Features/Pricing Pages:**
+        - Report Info: Product capabilities, pricing tiers.
+        - Goal: Inform, Compare (Pricing)
+        - Viz/Presentation: Headings, descriptive text, bulleted lists with Unicode icons, comparative tables (for pricing).
+        - Interaction: Buttons to navigate or simulate plan selection.
+        - Justification: Static content presented clearly and concisely.
+        - Library/Method: HTML/CSS (Tailwind).
+    - **Charts (Example on Profile/Dashboard for overall completion):**
+        - Report Info: Overall checklist completion rate across properties.
+        - Goal: Inform (Summary)
+        - Viz/Presentation: Donut Chart using Chart.js.
+        - Interaction: None initially, visual summary. Can be extended to click on segments to filter properties.
+        - Justification: Donut chart is good for showing parts of a whole (completed vs. incomplete tasks).
+        - Library/Method: Chart.js (Canvas).
+
+    CONFIRMATION: NO SVG graphics used. NO Mermaid JS used.
+    -->
+
+    <!-- Common Header -->
+    <header class="bg-white shadow-sm py-4 px-6 md:px-10 flex justify-between items-center fixed w-full z-10">
+        <div class="flex items-center gap-2">
+            <img src="https://placehold.co/40x40/F0F2F5/1F2937?text=Logo" alt="SafeStay Logo" class="rounded-full">
+            <button id="header-logo-btn" class="text-2xl font-bold text-gray-800 hover:text-blue-600 transition duration-150">SafeStay</button>
+        </div>
+        <nav id="main-nav" class="flex items-center space-x-4">
+            <!-- Navigation buttons will be dynamically inserted here by JavaScript -->
+        </nav>
+    </header>
+
+    <!-- Main Application Container -->
+    <div id="app-container" class="flex-grow flex flex-col items-center justify-center p-4">
+        <!-- Content will be dynamically rendered here -->
+
+        <!-- Home Page Section (New default landing) -->
+        <section id="home-page" class="page-section active w-full">
+            <div class="container-card max-w-5xl w-full text-center flex flex-col items-center justify-center p-10">
+                <img src="https://placehold.co/200x200/F0F2F5/1F2937?text=SafeStay" alt="SafeStay Main Logo" class="mb-8 rounded-full shadow-lg" />
+                <h1 class="text-5xl font-bold text-gray-900 mb-6">Ensure Safe Stays, Every Time.</h1>
+                <p class="text-xl text-gray-700 mb-8 max-w-3xl">
+                    SafeStay Checklist simplifies property safety management for Airbnb hosts,
+                    ensuring compliance, guest peace of mind, and effortless operations.
+                </p>
+                <div class="flex flex-col sm:flex-row gap-4 mb-10">
+                    <button id="home-signup-btn" class="bg-blue-600 text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-blue-700 transition duration-150 transform hover:scale-105">
+                        Get Started - It's Free!
+                    </button>
+                    <button id="home-learn-more-btn" class="bg-gray-200 text-gray-800 px-8 py-4 rounded-lg font-semibold text-lg hover:bg-gray-300 transition duration-150 transform hover:scale-105">
+                        Learn More <i data-lucide="arrow-right" class="inline-block w-5 h-5 ml-2 -mt-0.5"></i>
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mt-12">
+                    <div class="p-8 bg-white rounded-xl shadow-md border border-gray-200 text-left">
+                        <div class="mb-4 text-green-600"><i data-lucide="shield-check" class="w-10 h-10"></i></div>
+                        <h3 class="text-2xl font-semibold text-gray-800 mb-2">Guest Safety First</h3>
+                        <p class="text-gray-600">Ensure every guest enjoys a safe and worry-free stay with comprehensive checklists.</p>
+                    </div>
+                    <div class="p-8 bg-white rounded-xl shadow-md border border-gray-200 text-left">
+                        <div class="mb-4 text-purple-600"><i data-lucide="file-text" class="w-10 h-10"></i></div>
+                        <h3 class="text-2xl font-semibold text-gray-800 mb-2">Effortless Compliance</h3>
+                        <p class="text-gray-600">Stay compliant with local regulations and Airbnb standards with organized records.</p>
+                    </div>
+                    <div class="p-8 bg-white rounded-xl shadow-md border border-gray-200 text-left">
+                        <div class="mb-4 text-orange-600"><i data-lucide="clock" class="w-10 h-10"></i></div>
+                        <h3 class="text-2xl font-semibold text-gray-800 mb-2">Save Time & Stress</h3>
+                        <p class="text-gray-600">Automate your safety checks and focus on providing exceptional guest experiences.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- Auth Page Section (Contains Login and Signup Forms) -->
+        <section id="auth-page" class="page-section w-full">
+            <div class="container-card max-w-4xl w-full flex flex-col md:flex-row gap-8">
+                <div class="md:w-1/2 flex flex-col justify-center items-center text-center p-6 bg-blue-600 text-white rounded-xl">
+                    <img src="https://placehold.co/150x150/ffffff/000000?text=SafeStay+Auth" alt="SafeStay Auth" class="mb-6 rounded-full shadow-lg" />
+                    <h1 class="text-4xl font-bold mb-4">Welcome Back!</h1>
+                    <p class="text-xl leading-relaxed">Sign in or create an account to manage your properties.</p>
+                </div>
+
+                <div class="md:w-1/2 flex flex-col space-y-8">
+                    <div class="border border-gray-200 rounded-xl p-6">
+                        <h2 class="text-3xl font-semibold text-gray-800 mb-6 text-center">Log In</h2>
+                        <form id="loginForm" class="space-y-4">
+                            <div>
+                                <label for="loginEmail" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                                <input type="email" id="loginEmail" name="loginEmail" placeholder="user@example.com" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150 ease-in-out" required />
+                            </div>
+                            <div>
+                                <label for="loginPassword" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                                <input type="password" id="loginPassword" name="loginPassword" placeholder="********" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150 ease-in-out" required />
+                            </div>
+                            <a href="#" class="text-sm text-blue-600 hover:underline">Forgot Password?</a>
+                            <button type="submit" id="loginSubmitBtn" class="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition duration-150 ease-in-out">Log In</button>
+                            <p id="loginMessage" class="text-center text-red-500 text-sm mt-2 hidden"></p>
+                        </form>
+                    </div>
+
+                    <div class="border border-gray-200 rounded-xl p-6">
+                        <h2 class="text-3xl font-semibold text-gray-800 mb-6 text-center">Sign Up</h2>
+                        <form id="signupForm" class="space-y-4">
+                            <div>
+                                <label for="signupEmail" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                                <input type="email" id="signupEmail" name="signupEmail" placeholder="your@example.com" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150 ease-in-out" required />
+                            </div>
+                            <div>
+                                <label for="signupPassword" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                                <input type="password" id="signupPassword" name="signupPassword" placeholder="********" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150 ease-in-out" required />
+                            </div>
+                            <div>
+                                <label for="confirmPassword" class="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
+                                <input type="password" id="confirmPassword" name="confirmPassword" placeholder="********" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150 ease-in-out" required />
+                            </div>
+                            <div class="flex items-center">
+                                <input type="checkbox" id="terms" name="terms" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" required />
+                                <label for="terms" class="ml-2 block text-sm text-gray-900">
+                                    I agree to the <a href="#" class="text-blue-600 hover:underline">Terms of Service</a> and <a href="#" class="text-blue-600 hover:underline">Privacy Policy</a>
+                                </label>
+                            </div>
+                            <button type="submit" id="signupSubmitBtn" class="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 transition duration-150 ease-in-out">Sign Up</button>
+                            <p id="signupMessage" class="text-center text-red-500 text-sm mt-2 hidden"></p>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- User Details Page Section -->
+        <section id="user-details-page" class="page-section w-full">
+            <div class="container-card max-w-3xl w-full">
+                <h1 class="text-4xl font-bold text-gray-800 mb-8 text-center">Complete Your Profile</h1>
+                <p class="text-lg text-gray-600 mb-8 text-center">Let's get you set up to start managing your properties.</p>
+                <form id="profileDetailsForm" class="space-y-8">
+                    <div class="border border-gray-200 rounded-xl p-6">
+                        <h2 class="text-2xl font-semibold text-gray-700 mb-6">Your Information</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="fullName" class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                                <input type="text" id="fullName" name="fullName" placeholder="John Doe" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" required />
+                            </div>
+                            <div>
+                                <label for="phoneNumber" class="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                                <input type="tel" id="phoneNumber" name="phoneNumber" placeholder="+1 (555) 123-4567" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" />
+                            </div>
+                            <div>
+                                <label for="country" class="block text-sm font-medium text-gray-700 mb-1">Country of Residence</label>
+                                <select id="country" name="country" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" required>
+                                    <option value="">Select your country</option>
+                                    <option value="US">United States</option>
+                                    <option value="CA">Canada</option>
+                                    <option value="GB">United Kingdom</option>
+                                    <option value="IN">India</option>
+                                </select>
+                            </div>
+                            <div class="md:col-span-2">
+                                <label for="bio" class="block text-sm font-medium text-gray-700 mb-1">Brief Bio (Optional)</label>
+                                <textarea id="bio" name="bio" rows="3" placeholder="A little about yourself..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="border border-gray-200 rounded-xl p-6">
+                        <h2 class="text-2xl font-semibold text-gray-700 mb-6">Your First Property</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="propertyNickname" class="block text-sm font-medium text-gray-700 mb-1">Property Nickname</label>
+                                <input type="text" id="propertyNickname" name="propertyNickname" placeholder="Cozy Mountain Cabin" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" required />
+                            </div>
+                            <div>
+                                <label for="propertyType" class="block text-sm font-medium text-gray-700 mb-1">Property Type</label>
+                                <select id="propertyType" name="propertyType" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" required>
+                                    <option value="">Select type</option>
+                                    <option value="Apartment">Apartment</option>
+                                    <option value="House">House</option>
+                                    <option value="Condo">Condo</option>
+                                    <option value="Villa">Villa</option>
+                                    <option value="Cabin">Cabin</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                            <div class="md:col-span-2">
+                                <label for="address" class="block text-sm font-medium text-gray-700 mb-1">Street Address</label>
+                                <input type="text" id="address" name="address" placeholder="123 Main St" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" required />
+                            </div>
+                            <div>
+                                <label for="city" class="block text-sm font-medium text-gray-700 mb-1">City</label>
+                                <input type="text" id="city" name="city" placeholder="Anytown" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" required />
+                            </div>
+                            <div>
+                                <label for="state" class="block text-sm font-medium text-gray-700 mb-1">State/Province</label>
+                                <input type="text" id="state" name="state" placeholder="NY" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" required />
+                            </div>
+                            <div>
+                                <label for="zip" class="block text-sm font-medium text-gray-700 mb-1">Zip/Postal Code</label>
+                                <input type="text" id="zip" name="zip" placeholder="12345" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" required />
+                            </div>
+                            <div>
+                                <label for="propertyCountry" class="block text-sm font-medium text-gray-700 mb-1">Country</label>
+                                <select id="propertyCountry" name="propertyCountry" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" required>
+                                    <option value="">Select country</option>
+                                    <option value="US">United States</option>
+                                    <option value="CA">Canada</option>
+                                    <option value="GB">United Kingdom</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="bedrooms" class="block text-sm font-medium text-gray-700 mb-1">Bedrooms</label>
+                                <input type="number" id="bedrooms" name="bedrooms" min="0" placeholder="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" required />
+                            </div>
+                            <div>
+                                <label for="bathrooms" class="block text-sm font-medium text-gray-700 mb-1">Bathrooms</label>
+                                <input type="number" id="bathrooms" name="bathrooms" min="0" step="0.5" placeholder="2.5" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" required />
+                            </div>
+                            <div>
+                                <label for="occupancy" class="block text-sm font-medium text-gray-700 mb-1">Max Occupancy</label>
+                                <input type="number" id="occupancy" name="occupancy" min="1" placeholder="6" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" required />
+                            </div>
+                        </div>
+                    </div>
+                    <button type="submit" id="saveDetailsBtn" class="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition duration-150 ease-in-out">
+                        Save and Continue
+                    </button>
+                    <p id="saveDetailsMessage" class="text-center text-red-500 text-sm mt-2 hidden"></p>
+                </form>
+            </div>
+        </section>
+
+        <!-- Profile/Dashboard Page Section -->
+        <section id="profile-page" class="page-section w-full">
+            <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8">
+                <!-- User Profile Summary -->
+                <div class="md:col-span-1 border border-gray-200 rounded-xl p-6 bg-white shadow-md">
+                    <h2 class="text-2xl font-semibold text-gray-800 mb-6 flex items-center gap-2">
+                        <i data-lucide="user" class="w-6 h-6 text-blue-500"></i> My Profile
+                    </h2>
+                    <div class="flex flex-col items-center mb-6">
+                        <img id="profilePicture" src="https://placehold.co/100x100/e0e0e0/000000?text=JD" alt="Profile Picture" class="rounded-full w-24 h-24 object-cover border-4 border-blue-200 mb-3">
+                        <button class="text-blue-600 text-sm hover:underline">Change Picture</button>
+                    </div>
+                    <div class="space-y-3">
+                        <p class="text-gray-700"><strong class="text-gray-900">Name:</strong> <span id="profileUserName">N/A</span></p>
+                        <p class="text-gray-700"><strong class="text-gray-900">Email:</strong> <span id="profileUserEmail">N/A</span></p>
+                        <p class="text-gray-700"><strong class="text-gray-900">User ID:</strong> <span id="profileUserId" class="break-all text-sm text-gray-500">N/A</span></p>
+                        <p class="text-gray-700"><strong class="text-gray-900">Phone:</strong> <span id="profileUserPhone">N/A</span></p>
+                        <p class="text-gray-700"><strong class="text-gray-900">Country:</b> <span id="profileUserCountry">N/A</span></p>
+                        <p class="text-gray-700"><strong class="text-gray-900">Bio:</b> <span id="profileUserBio">No bio provided.</span></p>
+                    </div>
+                    <button id="editProfileBtn" class="mt-6 w-full bg-blue-500 text-white py-2 rounded-lg font-semibold hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition duration-150">
+                        Edit Profile
+                    </button>
+                </div>
+
+                <!-- Properties List -->
+                <div class="md:col-span-3 border border-gray-200 rounded-xl p-6 bg-white shadow-md">
+                    <h2 class="text-2xl font-semibold text-gray-800 mb-6 flex items-center gap-2">
+                        <i data-lucide="home" class="w-6 h-6 text-green-500"></i> My Properties
+                    </h2>
+                    <p class="text-gray-700 mb-4">View and manage your listed properties. Each property can have its own safety checklist.</p>
+                    <div id="propertiesList" class="space-y-4 mb-8">
+                        <!-- Properties will be injected here by JavaScript -->
+                    </div>
+                    <button id="addNewPropertyBtn" class="w-full bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition duration-150">
+                        <i data-lucide="plus" class="inline-block w-5 h-5 mr-2 -mt-0.5"></i> Add New Property
+                    </button>
+
+                    <div class="mt-8">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                            <i data-lucide="pie-chart" class="w-5 h-5 text-purple-500"></i> Overall Checklist Status
+                        </h3>
+                        <p class="text-gray-700 mb-4">A quick overview of your properties' checklist completion.</p>
+                        <div class="chart-container">
+                            <canvas id="overallCompletionChart"></canvas>
+                        </div>
+                        <p id="chart-description" class="text-gray-600 text-sm mt-4">
+                            This chart illustrates the percentage of tasks completed across all properties.
+                            Maintaining a high completion rate ensures guest safety and compliance.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Add/Edit Property Modal (initially hidden) -->
+        <div id="addEditPropertyModalOverlay" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-40 p-4 hidden">
+            <div id="addEditPropertyModal" class="bg-white p-8 rounded-xl shadow-2xl max-w-2xl w-full animate-fade-in-up">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 id="modalTitle" class="text-3xl font-bold text-gray-800">Add New Property</h2>
+                    <button id="closeModalBtn" class="text-gray-500 hover:text-gray-800">
+                        <i data-lucide="x" class="w-6 h-6"></i>
+                    </button>
+                </div>
+                <form id="addEditPropertyForm" class="space-y-4">
+                    <input type="hidden" id="modalPropertyId" value="">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="modalNickname" class="block text-sm font-medium text-gray-700 mb-1">Nickname</label>
+                            <input type="text" id="modalNickname" name="modalNickname" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" required />
+                        </div>
+                        <div>
+                            <label for="modalType" class="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                            <select id="modalType" name="modalType" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" required>
+                                <option value="">Select type</option>
+                                <option value="Apartment">Apartment</option>
+                                <option value="House">House</option>
+                                <option value="Condo">Condo</option>
+                                <option value="Villa">Villa</option>
+                                <option value="Cabin">Cabin</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="md:col-span-2">
+                            <label for="modalAddress" class="block text-sm font-medium text-gray-700 mb-1">Street Address</label>
+                            <input type="text" id="modalAddress" name="modalAddress" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" required />
+                        </div>
+                        <div>
+                            <label for="modalCity" class="block text-sm font-medium text-gray-700 mb-1">City</label>
+                            <input type="text" id="modalCity" name="modalCity" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" required />
+                        </div>
+                        <div>
+                            <label for="modalState" class="block text-sm font-medium text-gray-700 mb-1">State/Province</label>
+                            <input type="text" id="modalState" name="modalState" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" required />
+                        </div>
+                        <div>
+                            <label for="modalZip" class="block text-sm font-medium text-gray-700 mb-1">Zip/Postal Code</label>
+                            <input type="text" id="modalZip" name="modalZip" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" required />
+                        </div>
+                        <div>
+                            <label for="modalCountry" class="block text-sm font-medium text-gray-700 mb-1">Country</label>
+                            <select id="modalCountry" name="modalCountry" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" required>
+                                <option value="">Select country</option>
+                                <option value="US">United States</option>
+                                <option value="CA">Canada</option>
+                                <option value="GB">United Kingdom</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="modalBedrooms" class="block text-sm font-medium text-gray-700 mb-1">Bedrooms</label>
+                            <input type="number" id="modalBedrooms" name="modalBedrooms" min="0" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" required />
+                        </div>
+                        <div>
+                            <label for="modalBathrooms" class="block text-sm font-medium text-gray-700 mb-1">Bathrooms</label>
+                            <input type="number" id="modalBathrooms" name="modalBathrooms" min="0" step="0.5" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" required />
+                        </div>
+                        <div>
+                            <label for="modalOccupancy" class="block text-sm font-medium text-gray-700 mb-1">Max Occupancy</label>
+                            <input type="number" id="modalOccupancy" name="modalOccupancy" min="1" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" required />
+                        </div>
+                    </div>
+                    <p id="modalErrorMessage" class="text-center text-red-500 text-sm mt-2 hidden"></p>
+                    <div class="flex justify-end space-x-4 mt-6">
+                        <button type="button" id="modalCancelBtn" class="bg-gray-300 text-gray-800 px-6 py-2 rounded-lg font-semibold hover:bg-gray-400 transition duration-150">
+                            Cancel
+                        </button>
+                        <button type="submit" id="modalSaveBtn" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition duration-150">
+                            Save Property
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Checklist Page Section -->
+        <section id="checklist-page" class="page-section w-full">
+            <div class="max-w-4xl mx-auto">
+                <h1 class="text-4xl font-bold text-gray-800 mb-6">Safety Checklist for <span id="checklistPropertyName"></span></h1>
+                <p class="text-lg text-gray-600 mb-8">Generated on: <span id="generationDate"></span></p>
+                <p class="text-gray-700 mb-6">This section allows you to review and manage the safety checklist for the selected property. Mark items as complete as you verify them, and use the options below to export or share your progress.</p>
+
+                <div class="bg-white p-6 rounded-xl shadow-md border border-gray-200 mb-8">
+                    <h2 class="text-2xl font-semibold text-gray-800 mb-4">Checklist Options</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="templateSelect" class="block text-sm font-medium text-gray-700 mb-1">Select Template:</label>
+                            <select id="templateSelect" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                                <option value="standard">Standard Safety Checklist</option>
+                                <option value="fire">Fire Safety Specific</option>
+                                <option value="guest_welcome">Guest Welcome & Safety</option>
+                                <option value="custom">My Custom Template</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="dueDate" class="block text-sm font-medium text-gray-700 mb-1">Due Date (Optional):</label>
+                            <input type="date" id="dueDate" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" />
+                        </div>
+                    </div>
+                    <div class="mt-6 flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-3">
+                        <button id="addCustomItemBtn" class="bg-gray-200 text-gray-800 px-5 py-2 rounded-lg font-medium hover:bg-gray-300 transition duration-150">
+                            <i data-lucide="plus" class="inline-block w-5 h-5 mr-2 -mt-0.5"></i> Add Custom Item
+                        </button>
+                        <button id="regenerateChecklistBtn" class="bg-blue-600 text-white px-5 py-2 rounded-lg font-semibold hover:bg-blue-700 transition duration-150">
+                            <i data-lucide="refresh-cw" class="inline-block w-5 h-5 mr-2 -mt-0.5"></i> Regenerate Checklist
+                        </button>
+                    </div>
+                </div>
+
+                <div id="checklistItems" class="space-y-4">
+                    <!-- Checklist items will be injected here by JavaScript -->
+                </div>
+
+                <div class="mt-8 flex flex-col sm:flex-row justify-center gap-4">
+                    <button id="markAllCompleteBtn" class="bg-green-600 text-white px-8 py-3 rounded-lg font-semibold text-lg hover:bg-green-700 transition duration-150">
+                        <i data-lucide="check-circle" class="inline-block w-6 h-6 mr-2 -mt-1"></i> Mark All as Complete
+                    </button>
+                    <button id="downloadPdfBtn" class="bg-gray-800 text-white px-8 py-3 rounded-lg font-semibold text-lg hover:bg-gray-900 transition duration-150">
+                        <i data-lucide="download" class="inline-block w-6 h-6 mr-2 -mt-1"></i> Download as PDF
+                    </button>
+                    <button id="shareChecklistBtn" class="bg-purple-600 text-white px-8 py-3 rounded-lg font-semibold text-lg hover:bg-purple-700 transition duration-150">
+                        <i data-lucide="share-2" class="inline-block w-6 h-6 mr-2 -mt-1"></i> Share
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Features Page Section -->
+        <section id="features-page" class="page-section w-full">
+            <div class="max-w-6xl mx-auto px-4 text-center">
+                <h1 class="text-5xl font-bold text-gray-800 mb-8">Powerful Features for Peace of Mind</h1>
+                <p class="text-xl text-gray-600 mb-12">Discover how SafeStay Checklist empowers Airbnb hosts to ensure safety and compliance effortlessly.</p>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
+                    <div class="p-8 bg-white rounded-xl shadow-lg border border-gray-200 text-left">
+                        <div class="mb-4 text-blue-600"><i data-lucide="clipboard-check" class="w-12 h-12"></i></div>
+                        <h3 class="text-2xl font-semibold text-gray-800 mb-3">Customizable Checklists</h3>
+                        <p class="text-gray-600">Create bespoke safety checklists tailored to each unique property. Add specific items, notes, and photos relevant to your listing, ensuring every detail is covered.</p>
+                    </div>
+                    <div class="p-8 bg-white rounded-xl shadow-lg border border-gray-200 text-left">
+                        <div class="mb-4 text-green-600"><i data-lucide="bell" class="w-12 h-12"></i></div>
+                        <h3 class="text-2xl font-semibold text-gray-800 mb-3">Automated Reminders & Scheduling</h3>
+                        <p class="text-gray-600">Never miss a safety inspection or maintenance task. Schedule recurring checklists and receive automated reminders via email or app notifications.</p>
+                    </div>
+                    <div class="p-8 bg-white rounded-xl shadow-lg border border-gray-200 text-left">
+                        <div class="mb-4 text-red-600"><i data-lucide="life-buoy" class="w-12 h-12"></i></div>
+                        <h3 class="text-2xl font-semibold text-gray-800 mb-3">Emergency Information Management</h3>
+                        <p class="text-gray-600">Centralize all critical emergency contacts, procedures, and exit routes. Share a secure, easy-to-access link with guests for their safety.</p>
+                    </div>
+                    <div class="p-8 bg-white rounded-xl shadow-lg border border-gray-200 text-left">
+                        <div class="mb-4 text-purple-600"><i data-lucide="building" class="w-12 h-12"></i></div>
+                        <h3 class="text-2xl font-semibold text-gray-800 mb-3">Multi-Property Support</h3>
+                        <p class="text-gray-600">Manage safety checklists for multiple Airbnb listings from a single, intuitive dashboard. Perfect for hosts with growing portfolios.</p>
+                    </div>
+                    <div class="p-8 bg-white rounded-xl shadow-lg border border-gray-200 text-left">
+                        <div class="mb-4 text-yellow-600"><i data-lucide="check-circle-2" class="w-12 h-12"></i></div>
+                        <h3 class="text-2xl font-semibold text-gray-800 mb-3">Compliance Tracking</h3>
+                        <p class="text-gray-600">Keep a digital record of all completed safety checks and maintenance, simplifying compliance with local regulations and Airbnb's guidelines.</p>
+                    </div>
+                    <div class="p-8 bg-white rounded-xl shadow-lg border border-gray-200 text-left">
+                        <div class="mb-4 text-indigo-600"><i data-lucide="share-2" class="w-12 h-12"></i></div>
+                        <h3 class="text-2xl font-semibold text-gray-800 mb-3">Export & Sharing Options</h3>
+                        <p class="text-gray-600">Easily export your checklists as PDFs or share secure web links with cleaning teams, co-hosts, or even guests directly.</p>
+                    </div>
+                </div>
+
+                <div class="mt-20 text-center">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-6">Ready to Streamline Your Safety?</h2>
+                    <button id="features-to-pricing-btn" class="inline-block bg-blue-600 text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-blue-700 transition duration-150 transform hover:scale-105">
+                        View Pricing Plans
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Pricing Page Section -->
+        <section id="pricing-page" class="page-section w-full">
+            <div class="max-w-6xl mx-auto px-4 text-center">
+                <h1 class="text-5xl font-bold text-gray-800 mb-8">Simple, Transparent Pricing</h1>
+                <p class="text-xl text-gray-600 mb-12">Choose the plan that best fits your hosting needs. No hidden fees, cancel anytime.</p>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div class="bg-white p-8 rounded-xl shadow-lg border border-gray-200 flex flex-col justify-between transform hover:scale-105 transition-transform duration-200">
+                        <div>
+                            <h2 class="text-3xl font-bold text-gray-800 mb-4">Free</h2>
+                            <p class="text-gray-600 text-lg mb-6">Perfect for new hosts or single properties.</p>
+                            <p class="text-5xl font-extrabold text-blue-600 mb-8">$0<span class="text-xl font-medium text-gray-500">/month</span></p>
+                            <ul class="text-left space-y-3 mb-8">
+                                <li class="flex items-center text-gray-700"><i data-lucide="check" class="w-5 h-5 text-green-500 mr-2"></i> 1 Property</li>
+                                <li class="flex items-center text-gray-700"><i data-lucide="check" class="w-5 h-5 text-green-500 mr-2"></i> Basic Checklist Templates</li>
+                                <li class="flex items-center text-gray-700"><i data-lucide="check" class="w-5 h-5 text-green-500 mr-2"></i> Manual Reminders</li>
+                                <li class="flex items-center text-gray-700"><i data-lucide="check" class="w-5 h-5 text-green-500 mr-2"></i> Basic Emergency Info</li>
+                                <li class="flex items-center text-gray-700"><i data-lucide="x" class="w-5 h-5 text-red-500 mr-2"></i> No PDF Export</li>
+                            </ul>
+                        </div>
+                        <button id="getStartedFreeBtn" class="block w-full bg-gray-200 text-gray-800 px-6 py-3 rounded-lg font-semibold text-lg hover:bg-gray-300 transition duration-150">
+                            Get Started
+                        </button>
+                    </div>
+
+                    <div class="bg-blue-600 text-white p-8 rounded-xl shadow-lg border-2 border-blue-800 flex flex-col justify-between transform scale-105 hover:scale-110 transition-transform duration-200">
+                        <div>
+                            <h2 class="text-3xl font-bold mb-4">Pro <span class="bg-yellow-400 text-blue-900 text-sm font-bold px-3 py-1 rounded-full ml-2">POPULAR</span></h2>
+                            <p class="text-blue-100 text-lg mb-6">Ideal for growing hosts with multiple listings.</p>
+                            <p class="text-5xl font-extrabold mb-8">$19<span class="text-xl font-medium text-blue-200">/month</span></p>
+                            <ul class="text-left space-y-3 mb-8">
+                                <li class="flex items-center"><i data-lucide="check" class="w-5 h-5 text-white mr-2"></i> Up to 5 Properties</li>
+                                <li class="flex items-center"><i data-lucide="check" class="w-5 h-5 text-white mr-2"></i> All Basic Features</li>
+                                <li class="flex items-center"><i data-lucide="check" class="w-5 h-5 text-white mr-2"></i> Advanced Checklist Customization</li>
+                                <li class="flex items-center"><i data-lucide="check" class="w-5 h-5 text-white mr-2"></i> Automated Reminders & Scheduling</li>
+                                <li class="flex items-center"><i data-lucide="check" class="w-5 h-5 text-white mr-2"></i> PDF Export & Digital Sharing</li>
+                                <li class="flex items-center"><i data-lucide="check" class="w-5 h-5 text-white mr-2"></i> Priority Email Support</li>
+                            </ul>
+                        </div>
+                        <button id="chooseProBtn" class="block w-full bg-white text-blue-600 px-6 py-3 rounded-lg font-semibold text-lg hover:bg-gray-100 transition duration-150">
+                            Choose Pro
+                        </button>
+                    </div>
+
+                    <div class="bg-white p-8 rounded-xl shadow-lg border border-gray-200 flex flex-col justify-between transform hover:scale-105 transition-transform duration-200">
+                        <div>
+                            <h2 class="text-3xl font-bold text-gray-800 mb-4">Business</h2>
+                            <p class="text-gray-600 text-lg mb-6">For professional property managers and agencies.</p>
+                            <p class="text-5xl font-extrabold text-blue-600 mb-8">$49<span class="text-xl font-medium text-gray-500">/month</span></p>
+                            <ul class="text-left space-y-3 mb-8">
+                                <li class="flex items-center text-gray-700"><i data-lucide="check" class="w-5 h-5 text-green-500 mr-2"></i> Unlimited Properties</li>
+                                <li class="flex items-center text-gray-700"><i data-lucide="check" class="w-5 h-5 text-green-500 mr-2"></i> All Pro Features</li>
+                                <li class="flex items-center text-gray-700"><i data-lucide="check" class="w-5 h-5 text-green-500 mr-2"></i> Team Member Accounts</li>
+                                <li class="flex items-center text-gray-700"><i data-lucide="check" class="w-5 h-5 text-green-500 mr-2"></i> API Access & Integrations</li>
+                                <li class="flex items-center text-gray-700"><i data-lucide="check" class="w-5 h-5 text-green-500 mr-2"></i> Dedicated Account Manager</li>
+                                <li class="flex items-center text-gray-700"><i data-lucide="check" class="w-5 h-5 text-green-500 mr-2"></i> 24/7 Phone Support</li>
+                            </ul>
+                        </div>
+                        <button id="contactSalesBtn" class="block w-full bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold text-lg hover:bg-blue-700 transition duration-150">
+                            Contact Sales
+                        </button>
+                    </div>
+                </div>
+
+                <div class="mt-20 text-left max-w-4xl mx-auto">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-8 text-center">Frequently Asked Questions</h2>
+                    <div class="space-y-6">
+                        <div class="bg-white p-6 rounded-xl shadow-md border border-gray-200">
+                            <h3 class="text-xl font-semibold text-gray-800 mb-2">Can I switch plans later?</h3>
+                            <p class="text-gray-600">Yes, you can upgrade or downgrade your plan at any time directly from your account settings. Changes will be prorated.</p>
+                        </div>
+                        <div class="bg-white p-6 rounded-xl shadow-md border border-gray-200">
+                            <h3 class="text-xl font-semibold text-gray-800 mb-2">What is your cancellation policy?</h3>
+                            <p class="text-gray-600">You can cancel your subscription at any time. Your plan will remain active until the end of your current billing period.</p>
+                        </div>
+                        <div class="bg-white p-6 rounded-xl shadow-md border border-gray-200">
+                            <h3 class="text-xl font-semibold text-gray-800 mb-2">Do you offer a free trial?</h3>
+                            <p class="text-gray-600">Our Free plan offers a robust set of features to get you started. For Pro or Business features, you'll need to subscribe directly.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Settings Page Section -->
+        <section id="settings-page" class="page-section w-full">
+            <div class="max-w-4xl mx-auto bg-white p-8 rounded-xl shadow-md border border-gray-200">
+                <h1 class="text-4xl font-bold text-gray-800 mb-8">Account Settings</h1>
+                <p class="text-gray-700 mb-6">Manage your profile details, subscription, notifications, and integrations here. Keep your information up-to-date.</p>
+
+                <div class="mb-8 border-b border-gray-200">
+                    <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+                        <button id="settings-tab-profile" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg border-blue-600 text-blue-600">Profile</button>
+                        <button id="settings-tab-subscription" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">Subscription</button>
+                        <button id="settings-tab-notifications" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">Integrations</button>
+                    </nav>
+                </div>
+
+                <div id="profileSettingsContent" class="space-y-6">
+                    <h2 class="text-2xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                        <i data-lucide="user" class="w-6 h-6 text-blue-500"></i> Edit Profile
+                    </h2>
+                    <form id="updateProfileForm" class="space-y-4">
+                        <div>
+                            <label for="settingsName" class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                            <input type="text" id="settingsName" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" required />
+                        </div>
+                        <div>
+                            <label for="settingsEmail" class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                            <input type="email" id="settingsEmail" disabled class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed" />
+                        </div>
+                        <div>
+                            <label for="settingsPhone" class="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                            <input type="tel" id="settingsPhone" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" />
+                        </div>
+                        <div>
+                            <label for="settingsCountry" class="block text-sm font-medium text-gray-700 mb-1">Country</label>
+                            <select id="settingsCountry" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" required>
+                                <option value="">Select your country</option>
+                                <option value="US">United States</option>
+                                <option value="CA">Canada</option>
+                                <option value="GB">United Kingdom</option>
+                                <option value="IN">India</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="settingsBio" class="block text-sm font-medium text-gray-700 mb-1">Bio</label>
+                            <textarea id="settingsBio" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"></textarea>
+                        </div>
+                        <p id="updateProfileMessage" class="text-center text-red-500 text-sm mt-2 hidden"></p>
+                        <button type="submit" id="updateProfileBtn" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition duration-150">
+                            Save Changes
+                        </button>
+                    </form>
+
+                    <div class="mt-8 pt-6 border-t border-gray-200">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-4">Password & Security</h3>
+                        <button id="changePasswordBtn" class="bg-red-500 text-white px-6 py-2 rounded-lg font-semibold hover:bg-red-600 transition duration-150">
+                            Change Password
+                        </button>
+                        <button id="enableTwoFactorBtn" class="bg-gray-700 text-white px-6 py-2 rounded-lg font-semibold hover:bg-gray-800 transition duration-150 ml-4">
+                            Enable Two-Factor Authentication
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Custom Message Box -->
+        <div id="messageBoxOverlay" class="hidden">
+            <div id="messageBox">
+                <h3 id="messageBoxTitle"></h3>
+                <p id="messageBoxContent"></p>
+                <div id="messageBoxButtons">
+                    <button id="messageBoxOk" class="ok-button">OK</button>
+                    <button id="messageBoxCancel" class="cancel-button hidden">Cancel</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Common Footer -->
+    <footer class="bg-gray-800 text-white py-6 text-center text-sm w-full mt-auto">
+        <div class="max-w-6xl mx-auto px-4">
+            <p>&copy; 2025 SafeStay Checklist. All rights reserved.</p>
+            <div class="flex justify-center space-x-4 mt-2">
+                <a href="#" class="hover:underline text-gray-300">Privacy Policy</a>
+                <a href="#" class="hover:underline text-gray-300">Terms of Service</a>
+                <a href="#" class="hover:underline text-gray-300">FAQ</a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Base URL for the backend API
+        // *** IMPORTANT: Update this if your API base URL changes! ***
+        const API_BASE_URL = "https://us-central1-airbnb-safety-checklist.cloudfunctions.net/checklistCrudAPI";
+
+        // Canvas specific IDs (mocked for local dev if not in Canvas)
+        const CANVAS_APP_ID = typeof __app_id !== 'undefined' ? __app_id : 'safestay-local-dev-app';
+        const CANVAS_INITIAL_AUTH_TOKEN = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        // Global state variables
+        let IS_AUTHENTICATED = false;
+        let CURRENT_USER_ID = null;
+        let currentUserData = null; // Stores user profile data from API or initial auth
+        let userProperties = [];
+        let selectedPropertyForChecklist = null; // Stores the full property object
+        let currentPage = 'home'; // Track current page
+
+        let chartInstance = null; // To hold the Chart.js instance
+
+        // Stores polling interval IDs for API listeners.
+        // This simulates real-time updates for data fetched via standard HTTP APIs.
+        // In a true real-time setup (e.g., WebSockets), this polling would be replaced.
+        const apiPollingIntervals = {
+            userProfile: null,
+            userProperties: null
+        };
+
+        // --- Utility Functions ---
+        function generateUniqueId() {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
+
+        function getInitials(fullName) {
+            if (!fullName) return 'GU'; // Guest User
+            const names = fullName.split(' ');
+            if (names.length === 1) return names[0].charAt(0).toUpperCase();
+            return (names[0].charAt(0) + names[names.length - 1].charAt(0)).toUpperCase();
+        }
+
+        function getElement(id) {
+            const el = document.getElementById(id);
+            if (!el) {
+                console.error(`ERROR: Element with ID "${id}" not found.`);
+            }
+            return el;
+        }
+
+        function showElement(id) {
+            const el = getElement(id);
+            if (el) el.classList.remove('hidden');
+        }
+
+        function hideElement(id) {
+            const el = getElement(id);
+            if (el) el.classList.add('hidden');
+        }
+
+        function showLoading(buttonId, originalText) {
+            const button = getElement(buttonId);
+            if (button) {
+                button.dataset.originalText = originalText;
+                button.textContent = 'Loading...';
+                button.disabled = true;
+            }
+        }
+
+        function hideLoading(buttonId) {
+            const button = getElement(buttonId);
+            if (button) {
+                button.textContent = button.dataset.originalText || '';
+                button.disabled = false;
+            }
+        }
+
+        // --- Custom Message Box Logic ---
+        let currentMessageBoxCallback = null;
+
+        function showMessageBox(title, message, type = 'alert', onConfirm = () => {}, onCancel = () => {}) {
+            const overlay = getElement('messageBoxOverlay');
+            const msgBox = getElement('messageBox');
+            const msgTitle = getElement('messageBoxTitle');
+            const msgContent = getElement('messageBoxContent');
+            const okBtn = getElement('messageBoxOk');
+            const cancelBtn = getElement('messageBoxCancel');
+
+            msgTitle.textContent = title;
+            msgContent.textContent = message;
+
+            if (type === 'confirm') {
+                cancelBtn.classList.remove('hidden');
+            } else {
+                cancelBtn.classList.add('hidden');
+            }
+
+            currentMessageBoxCallback = { onConfirm, onCancel };
+
+            overlay.classList.add('active');
+            msgBox.classList.add('active');
+        }
+
+        function hideMessageBox() {
+            const overlay = getElement('messageBoxOverlay');
+            const msgBox = getElement('messageBox');
+            overlay.classList.remove('active');
+            msgBox.classList.remove('active');
+            currentMessageBoxCallback = null;
+        }
+
+        // Attach listeners for message box buttons
+        getElement('messageBoxOk').addEventListener('click', () => {
+            if (currentMessageBoxCallback && currentMessageBoxCallback.onConfirm) {
+                currentMessageBoxCallback.onConfirm(true);
+            }
+            hideMessageBox();
+        });
+
+        getElement('messageBoxCancel').addEventListener('click', () => {
+            if (currentMessageBoxCallback && currentMessageBoxCallback.onCancel) {
+                currentMessageBoxCallback.onCancel(false);
+            }
+            hideMessageBox();
+        });
+
+        // --- Mock Auth (used internally by API layer for state management) ---
+        // This mock serves to manage the client-side authentication state and notify listeners,
+        // mirroring what a real Firebase Auth SDK would do after API calls.
+        const _mockAuth = {
+            _authListeners: [],
+            _currentUser: null, // { uid: string, email: string, accessToken: string, isAnonymous: boolean, isCanvasUser: boolean }
+            _updateUser(user) {
+                // Ensure user object always has a consistent structure with defaults
+                const newUserState = {
+                    uid: user ? user.uid : null,
+                    email: user ? user.email : null,
+                    accessToken: user ? user.accessToken : null,
+                    isAnonymous: user ? user.isAnonymous : false,
+                    isCanvasUser: user ? user.isCanvasUser : false,
+                };
+
+                // Only trigger listeners if the user state actually changes to avoid unnecessary re-renders
+                if (JSON.stringify(this._currentUser) !== JSON.stringify(newUserState)) {
+                    this._currentUser = newUserState;
+                    // Notify all registered auth state change listeners
+                    this._authListeners.forEach(listener => listener(this._currentUser));
+                }
+            },
+            onAuthStateChanged(callback) {
+                this._authListeners.push(callback);
+                // Immediately call the callback with the current user state upon registration
+                callback(this._currentUser);
+                // Return an unsubscribe function
+                return () => {
+                    this._authListeners = this._authListeners.filter(l => l !== callback);
+                };
+            },
+            // Simulates anonymous sign-in (for scenarios where no token is provided)
+            signInAnonymously() {
+                return new Promise(resolve => {
+                    const uid = generateUniqueId();
+                    this._updateUser({ uid: uid, email: `anonymous-${uid}@example.com`, accessToken: null, isAnonymous: true });
+                    resolve({ user: this._currentUser }); // Resolve with the current user object
+                });
+            },
+            // Simulates sign-in using a custom token (e.g., from Canvas environment)
+            signInWithCustomToken(token) {
+                return new Promise(resolve => {
+                    const uid = `canvas-user-${token.substring(0, 8)}`; // Generate a mock UID from the token
+                    // Update internal user state, marking as Canvas user and providing the token
+                    this._updateUser({ uid: uid, email: `canvas-${uid}@example.com`, accessToken: token, isAnonymous: false, isCanvasUser: true });
+                    resolve({ user: this._currentUser }); // Resolve with the current user object
+                });
+            },
+            // Simulates user sign-out
+            signOut() {
+                return new Promise(resolve => {
+                    this._updateUser(null); // Set user to null (logged out state)
+                    resolve();
+                });
+            }
+        };
+
+
+        // --- API Layer ---
+        // This layer handles communication with the backend APIs.
+        // All API calls include Content-Type: application/json.
+        // Authenticated calls include Authorization: Bearer <access_token>.
+        const userApi = {
+            /**
+             * API Name: User Login
+             * HTTP Method: POST
+             * URL: https://us-central1-airbnb-safety-checklist.cloudfunctions.net/checklistCrudAPI/login
+             *
+             * @param {string} email - User's email address
+             * @param {string} password - User's password
+             * @returns {Promise<object>} - {success: boolean, user: object}
+             *
+             * Request Body:
+             * {
+             * "email": "string",
+             * "password": "string"
+             * }
+             *
+             * Success Response:
+             * {
+             * "success": true,
+             * "data": {
+             * "user": {
+             * "id": "string",
+             * "email": "string",
+             * "confirmed": boolean
+             * },
+             * "session": {
+             * "access_token": "string",
+             * "expires_at": number,
+             * "refresh_token": "string"
+             * },
+             * "properties": []
+             * }
+             * }
+             *
+             * Error Response:
+             * {
+             * "success": false,
+             * "message": "string"
+             * }
+             */
+            async login(email, password) {
+                const url = `${API_BASE_URL}/login`;
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ email, password }),
+                    });
+
+                    const result = await response.json();
+                    if (!response.ok || !result.success) {
+                        throw new Error(result.message || 'Login failed: An unknown error occurred.');
+                    }
+
+                    if (result.data && result.data.user && result.data.session) {
+                        // Update _mockAuth with the actual user ID, email, and session token
+                        _mockAuth._updateUser({
+                            uid: result.data.user.id,
+                            email: result.data.user.email,
+                            accessToken: result.data.session.access_token, // Access token is under session.access_token
+                            isAnonymous: false
+                        });
+                        return { success: true, user: result.data.user };
+                    } else {
+                        throw new Error('Login response was successful but data was malformed.');
+                    }
+                } catch (error) {
+                    console.error("API Login Error:", error);
+                    throw error;
+                }
+            },
+
+            /**
+             * API Name: User Signup
+             * HTTP Method: POST
+             * URL: https://us-central1-airbnb-safety-checklist.cloudfunctions.net/checklistCrudAPI/signup
+             *
+             * @param {string} email - User's email address
+             * @param {string} password - User's desired password
+             * @returns {Promise<object>} - {success: boolean, user: object}
+             *
+             * Request Body:
+             * {
+             * "email": "string",
+             * "password": "string"
+             * }
+             *
+             * Success Response:
+             * {
+             * "success": true,
+             * "data": {
+             * "id": "string",     // Unique ID for the newly created user (user_id)
+             * "email": "string",
+             * "confirmed": boolean,
+             * "message": "string",
+             * "session": "string" // The access token for the user's session
+             * }
+             * }
+             *
+             * Error Response:
+             * {
+             * "success": false,
+             * "message": "string"
+             * }
+             */
+            async signup(email, password) {
+                const url = `${API_BASE_URL}/signup`;
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ email, password }),
+                    });
+
+                    const result = await response.json();
+                    if (!response.ok || !result.success) {
+                        throw new Error(result.message || 'Signup failed: An unknown error occurred.');
+                    }
+
+                    if (result.data && result.data.id && result.data.session) {
+                        // Update _mockAuth with the actual user ID, email, and session token
+                        _mockAuth._updateUser({
+                            uid: result.data.id,
+                            email: result.data.email,
+                            accessToken: result.data.session, // Signup response uses 'session' directly for token
+                            isAnonymous: false
+                        });
+                        return { success: true, user: { uid: result.data.id, email: result.data.email } };
+                    } else {
+                        throw new Error('Signup response was successful but data was malformed.');
+                    }
+                } catch (error) {
+                    console.error("API Signup Error:", error);
+                    throw error;
+                }
+            },
+
+            /**
+             * API Name: Retrieve User Profile
+             * HTTP Method: GET
+             * URL: https://us-central1-airbnb-safety-checklist.cloudfunctions.net/checklistCrudAPI/users/{userId}/profile
+             * Authorization: Bearer <access_token>
+             *
+             * @param {string} uid - The unique ID of the user.
+             * @param {string} accessToken - The access token for authentication.
+             * @returns {Promise<object>} - User profile data object.
+             *
+             * Request Parameters: (none, userId is in URL path)
+             *
+             * Success Response:
+             * {
+             * "success": true,
+             * "data": {
+             * "id": "string",
+             * "email": "string",
+             * "fullName": "string",
+             * "phoneNumber": "string",
+             * "country": "string",
+             * "bio": "string"
+             * }
+             * }
+             *
+             * Error Response:
+             * {
+             * "success": false,
+             * "message": "string"
+             * }
+             */
+            async getUserProfile(uid, accessToken) {
+                if (!uid || !accessToken) throw new Error("Authentication required to fetch profile.");
+                const url = `${API_BASE_URL}/users/${uid}/profile`;
+                try {
+                    const response = await fetch(url, {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${accessToken}`
+                        }
+                    });
+                    const result = await response.json();
+                    if (!response.ok || !result.success) {
+                        throw new Error(result.message || 'Failed to fetch user profile.');
+                    }
+                    return result.data;
+                } catch (error) {
+                    console.error("API Get User Profile Error:", error);
+                    throw error;
+                }
+            },
+
+            /**
+             * API Name: Save/Update User Profile
+             * HTTP Method: PUT
+             * URL: https://us-central1-airbnb-safety-checklist.cloudfunctions.net/checklistCrudAPI/users/{userId}/profile
+             * Authorization: Bearer <access_token>
+             *
+             * @param {string} uid - The unique ID of the user.
+             * @param {object} profileData - The profile data to save.
+             * @param {string} accessToken - The access token for authentication.
+             * @returns {Promise<object>} - Success response object.
+             *
+             * Request Body:
+             * {
+             * "fullName": "string",
+             * "phoneNumber": "string",
+             * "country": "string",
+             * "bio": "string",
+             * "email": "string", // Passed from client-side state
+             * "uid": "string"    // Passed from client-side state
+             * }
+             *
+             * Success Response:
+             * {
+             * "success": true,
+             * "message": "string"
+             * }
+             *
+             * Error Response:
+             * {
+             * "success": false,
+             * "message": "string"
+             * }
+             */
+            async saveUserProfile(uid, profileData, accessToken) {
+                if (!uid || !accessToken) throw new Error("Authentication required to save profile.");
+                const url = `${API_BASE_URL}/users/${uid}/profile`;
+                try {
+                    const response = await fetch(url, {
+                        method: 'PUT', // Using PUT for upsert/update
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${accessToken}`
+                        },
+                        body: JSON.stringify(profileData)
+                    });
+                    const result = await response.json();
+                    if (!response.ok || !result.success) {
+                        throw new Error(result.message || 'Failed to save user profile.');
+                    }
+                    return result;
+                } catch (error) {
+                    console.error("API Save User Profile Error:", error);
+                    throw error;
+                }
+            },
+
+            async signOut() {
+                // For a real backend, this would likely hit a logout endpoint to invalidate the token.
+                // For this application, we clear client-side state via _mockAuth.signOut().
+                return _mockAuth.signOut();
+            }
+        };
+
+        const propertyApi = {
+            /**
+             * API Name: Add New Property
+             * HTTP Method: POST
+             * URL: https://us-central1-airbnb-safety-checklist.cloudfunctions.net/checklistCrudAPI/users/{userId}/properties
+             * Authorization: Bearer <access_token>
+             *
+             * @param {string} uid - The unique ID of the user.
+             * @param {object} propertyData - The property data to add.
+             * @param {string} accessToken - The access token for authentication.
+             * @returns {Promise<object>} - Object containing the new property's ID.
+             *
+             * Request Body:
+             * {
+             * "nickname": "string",
+             * "type": "string",
+             * "address": "string",
+             * "city": "string",
+             * "state": "string",
+             * "zip": "string",
+             * "country": "string",
+             * "bedrooms": number,
+             * "bathrooms": number,
+             * "occupancy": number,
+             * "createdAt": "string" // ISO 8601 timestamp (e.g., "2025-06-21T10:30:00.000Z")
+             * }
+             *
+             * Success Response:
+             * {
+             * "success": true,
+             * "data": {
+             * "id": "string" // Unique ID of the newly created property
+             * },
+             * "message": "string"
+             * }
+             *
+             * Error Response:
+             * {
+             * "success": false,
+             * "message": "string"
+             * }
+             */
+            async addProperty(uid, propertyData, accessToken) {
+                if (!uid || !accessToken) throw new Error("Authentication required to add property.");
+                const url = `${API_BASE_URL}/users/${uid}/properties`;
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${accessToken}`
+                        },
+                        body: JSON.stringify(propertyData)
+                    });
+                    const result = await response.json();
+                    if (!response.ok || !result.success) {
+                        throw new Error(result.message || 'Failed to add property.');
+                    }
+                    return result.data; // Assuming result.data is the new property's ID or full data
+                } catch (error) {
+                    console.error("API Add Property Error:", error);
+                    throw error;
+                }
+            },
+
+            /**
+             * API Name: Update Existing Property
+             * HTTP Method: PUT
+             * URL: https://us-central1-airbnb-safety-checklist.cloudfunctions.net/checklistCrudAPI/users/{userId}/properties/{propertyId}
+             * Authorization: Bearer <access_token>
+             *
+             * @param {string} uid - The unique ID of the user.
+             * @param {string} propertyId - The ID of the property to update.
+             * @param {object} propertyData - The property data to update.
+             * @param {string} accessToken - The access token for authentication.
+             * @returns {Promise<object>} - Success response object.
+             *
+             * Request Body:
+             * {
+             * "nickname": "string (optional)",
+             * "type": "string (optional)",
+             * "address": "string (optional)",
+             * "city": "string (optional)",
+             * "state": "string (optional)",
+             * "zip": "string (optional)",
+             * "country": "string (optional)",
+             * "bedrooms": number (optional),
+             * "bathrooms": number (optional),
+             * "occupancy": number (optional),
+             * "updatedAt": "string" // ISO 8601 timestamp
+             * }
+             *
+             * Success Response:
+             * {
+             * "success": true,
+             * "message": "string"
+             * }
+             *
+             * Error Response:
+             * {
+             * "success": false,
+             * "message": "string"
+             * }
+             */
+            async updateProperty(uid, propertyId, propertyData, accessToken) {
+                if (!uid || !propertyId || !accessToken) throw new Error("Authentication required to update property.");
+                const url = `${API_BASE_URL}/users/${uid}/properties/${propertyId}`;
+                try {
+                    const response = await fetch(url, {
+                        method: 'PUT', // Using PUT for full replacement update, PATCH could also be used for partial
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${accessToken}`
+                        },
+                        body: JSON.stringify(propertyData)
+                    });
+                    const result = await response.json();
+                    if (!response.ok || !result.success) {
+                        throw new Error(result.message || 'Failed to update property.');
+                    }
+                    return result;
+                } catch (error) {
+                    console.error("API Update Property Error:", error);
+                    throw error;
+                }
+            },
+
+            /**
+             * API Name: Delete Property
+             * HTTP Method: DELETE
+             * URL: https://us-central1-airbnb-safety-checklist.cloudfunctions.net/checklistCrudAPI/users/{userId}/properties/{propertyId}
+             * Authorization: Bearer <access_token>
+             *
+             * @param {string} uid - The unique ID of the user.
+             * @param {string} propertyId - The ID of the property to delete.
+             * @param {string} accessToken - The access token for authentication.
+             * @returns {Promise<object>} - Success response object.
+             *
+             * Request Body: {} (empty)
+             *
+             * Success Response:
+             * {
+             * "success": true,
+             * "message": "string"
+             * }
+             *
+             * Error Response:
+             * {
+             * "success": false,
+             * "message": "string"
+             * }
+             */
+            async deleteProperty(uid, propertyId, accessToken) {
+                if (!uid || !propertyId || !accessToken) throw new Error("Authentication required to delete property.");
+                const url = `${API_BASE_URL}/users/${uid}/properties/${propertyId}`;
+                try {
+                    const response = await fetch(url, {
+                        method: 'DELETE',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${accessToken}`
+                        }
+                    });
+                    const result = await response.json(); // Even DELETE might return a success message
+                    if (!response.ok || !result.success) {
+                        throw new Error(result.message || 'Failed to delete property.');
+                    }
+                    return result;
+                } catch (error) {
+                    console.error("API Delete Property Error:", error);
+                    throw error;
+                }
+            },
+
+            /**
+             * API Name: Retrieve User Properties List
+             * HTTP Method: GET
+             * URL: https://us-central1-airbnb-safety-checklist.cloudfunctions.net/checklistCrudAPI/users/{userId}/properties
+             * Authorization: Bearer <access_token>
+             *
+             * @param {string} uid - The unique ID of the user.
+             * @param {string} accessToken - The access token for authentication.
+             * @returns {Promise<Array<object>>} - Array of property objects.
+             *
+             * Request Parameters: (none, userId is in URL path)
+             *
+             * Success Response:
+             * {
+             * "success": true,
+             * "data": [
+             * {
+             * "id": "string",
+             * "nickname": "string",
+             * "type": "string",
+             * // ... other property fields
+             * }
+             * ]
+             * }
+             *
+             * Error Response:
+             * {
+             * "success": false,
+             * "message": "string"
+             * }
+             */
+            async getUserProperties(uid, accessToken) {
+                if (!uid || !accessToken) throw new Error("Authentication required to fetch properties.");
+                const url = `${API_BASE_URL}/users/${uid}/properties`;
+                try {
+                    const response = await fetch(url, {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${accessToken}`
+                        }
+                    });
+                    const result = await response.json();
+                    if (!response.ok || !result.success) {
+                        throw new Error(result.message || 'Failed to fetch properties.');
+                    }
+                    return result.data; // Assuming result.data is the array of properties
+                } catch (error) {
+                    console.error("API Get User Properties Error:", error);
+                    throw error;
+                }
+            }
+        };
+
+        // --- Simulated Firestore-like API Adapter using Polling ---
+        // This object provides a simplified "Firestore-like" interface (doc, collection, onSnapshot, setDoc, etc.)
+        // for the rest of the application's logic. Under the hood, it now makes actual HTTP API calls
+        // and uses polling to simulate real-time updates for data retrieval.
+        const _apiBackedFirestore = {
+            doc(dbRef, path) { return { ref: path }; }, // Minimal mock DocumentReference
+            collection(dbRef, path) { return { ref: path }; }, // Minimal mock CollectionReference
+            query(collectionRef) { return collectionRef; }, // Query doesn't add much in this simple mock
+
+            async setDoc(docRef, data) {
+                const pathParts = docRef.ref.split('/');
+                const userId = _mockAuth._currentUser ? _mockAuth._currentUser.uid : null;
+                const accessToken = _mockAuth._currentUser ? _mockAuth._currentUser.accessToken : null;
+
+                if (!userId || !accessToken) throw new Error("Not authenticated for Firestore operation.");
+
+                if (pathParts.includes('user_profiles')) {
+                    await userApi.saveUserProfile(userId, data, accessToken);
+                    // Manually trigger a refresh of profile data after modification
+                    await _apiBackedFirestore._refreshProfileData(userId, accessToken);
+                } else {
+                    console.warn("Unsupported Firestore setDoc path for API binding:", docRef.ref);
+                }
+            },
+            async addDoc(collectionRef, data) {
+                const pathParts = collectionRef.ref.split('/');
+                const userId = _mockAuth._currentUser ? _mockAuth._currentUser.uid : null;
+                const accessToken = _mockAuth._currentUser ? _mockAuth._currentUser.accessToken : null;
+
+                if (!userId || !accessToken) throw new Error("Not authenticated for Firestore operation.");
+
+                if (pathParts.includes('user_properties')) {
+                    // Property API returns the new property object with ID, so we pass it
+                    await propertyApi.addProperty(userId, data, accessToken);
+                    // Manually trigger a refresh of properties data after modification
+                    await _apiBackedFirestore._refreshPropertiesData(userId, accessToken);
+                } else {
+                    console.warn("Unsupported Firestore addDoc path for API binding:", collectionRef.ref);
+                    return { id: generateUniqueId() }; // Return mock ID for unsupported paths to prevent errors
+                }
+            },
+            async updateDoc(docRef, data) {
+                const pathParts = docRef.ref.split('/');
+                const userId = _mockAuth._currentUser ? _mockAuth._currentUser.uid : null;
+                const accessToken = _mockAuth._currentUser ? _mockAuth._currentUser.accessToken : null;
+                const docId = pathParts[pathParts.length - 1]; // Last part of the path is the document ID
+
+                if (!userId || !accessToken) throw new Error("Not authenticated for Firestore operation.");
+
+                if (pathParts.includes('user_properties')) {
+                    await propertyApi.updateProperty(userId, docId, data, accessToken);
+                    // Manually trigger a refresh of properties data after modification
+                    await _apiBackedFirestore._refreshPropertiesData(userId, accessToken);
+                } else {
+                    console.warn("Unsupported Firestore updateDoc path for API binding:", docRef.ref);
+                }
+            },
+            async deleteDoc(docRef) {
+                const pathParts = docRef.ref.split('/');
+                const userId = _mockAuth._currentUser ? _mockAuth._currentUser.uid : null;
+                const accessToken = _mockAuth._currentUser ? _mockAuth._currentUser.accessToken : null;
+                const docId = pathParts[pathParts.length - 1]; // Last part of the path is the document ID
+
+                if (!userId || !accessToken) throw new Error("Not authenticated for Firestore operation.");
+
+                if (pathParts.includes('user_properties')) {
+                    await propertyApi.deleteProperty(userId, docId, accessToken);
+                    // Manually trigger a refresh of properties data after modification
+                    await _apiBackedFirestore._refreshPropertiesData(userId, accessToken);
+                } else {
+                    console.warn("Unsupported Firestore deleteDoc path for API binding:", docRef.ref);
+                }
+            },
+
+            /**
+             * Simulates Firestore's onSnapshot by polling the API.
+             * @param {object} queryRef - A mock query reference (contains `ref` string like "artifacts/appId/users/userId/user_profiles/profile").
+             * @param {function} onNext - Callback function to call with the snapshot data.
+             * @param {function} onError - Callback function for errors.
+             * @returns {function} - An unsubscribe function to stop polling.
+             */
+            onSnapshot(queryRef, onNext, onError) {
+                const pathParts = queryRef.ref.split('/');
+                const userId = _mockAuth._currentUser ? _mockAuth._currentUser.uid : null;
+                const accessToken = _mockAuth._currentUser ? _mockAuth._currentUser.accessToken : null;
+
+                if (!userId || !accessToken) {
+                    onError(new Error("Not authenticated for real-time updates. Please log in."));
+                    return () => { /* no-op unsubscribe */ }; // Return an empty unsubscribe
+                }
+
+                // Define data fetching logic that will be polled
+                const fetchDataAndCallOnNext = async () => {
+                    try {
+                        if (pathParts.includes('user_profiles')) {
+                            const profileData = await userApi.getUserProfile(userId, accessToken);
+                            onNext({ exists: () => !!profileData, data: () => profileData, id: 'profile' });
+                        } else if (pathParts.includes('user_properties')) {
+                            const propertiesData = await propertyApi.getUserProperties(userId, accessToken);
+                            onNext({ docs: propertiesData.map(d => ({ exists: () => true, data: () => d, id: d.id })) });
+                        } else {
+                            console.warn("Unsupported onSnapshot path:", queryRef.ref);
+                            onNext({ exists: () => false, data: () => null, docs: [] }); // Empty snapshot for unsupported path
+                        }
+                    } catch (e) {
+                        console.error("Error in onSnapshot polling:", e);
+                        onError(e); // Pass error to the provided onError callback
+                        // Important: Do NOT stop polling on error here, as network might be temporary.
+                        // Consider implementing a retry logic or exponential backoff if this were production.
+                    }
+                };
+
+                // Clear any existing polling interval for this specific path/listener
+                if (apiPollingIntervals[queryRef.ref]) {
+                    clearInterval(apiPollingIntervals[queryRef.ref]);
+                }
+
+                // Initial data fetch immediately when listener is set up
+                fetchDataAndCallOnNext();
+
+                // Set up polling interval (e.g., every 5 seconds)
+                const pollingInterval = 5000; // Poll every 5 seconds
+                const intervalId = setInterval(fetchDataAndCallOnNext, pollingInterval);
+
+                // Store the interval ID for later clearing when unsubscribing
+                apiPollingIntervals[queryRef.ref] = intervalId;
+
+                // Return an unsubscribe function
+                return () => {
+                    if (apiPollingIntervals[queryRef.ref]) {
+                        clearInterval(apiPollingIntervals[queryRef.ref]);
+                        delete apiPollingIntervals[queryRef.ref];
+                        console.log(`Unsubscribed from polling for: ${queryRef.ref}`);
+                    }
+                };
+            },
+
+            // Helper functions to manually trigger a data refresh after CUD operations
+            // These functions re-fetch data and directly update the global state, then trigger page re-render.
+            async _refreshProfileData(userId, accessToken) {
+                try {
+                    const profileData = await userApi.getUserProfile(userId, accessToken);
+                    currentUserData = profileData; // Update global state
+                    // Re-render relevant parts of the UI
+                    if (currentPage === 'profile') loadProfileContent();
+                    if (currentPage === 'settings') loadSettingsContent();
+                } catch (error) {
+                    console.error("Manual profile refresh failed:", error);
+                    showMessageBox("Data Sync Error", `Failed to refresh profile data: ${error.message}`);
+                }
+            },
+
+            async _refreshPropertiesData(userId, accessToken) {
+                try {
+                    const propertiesData = await propertyApi.getUserProperties(userId, accessToken);
+                    userProperties = propertiesData; // Update global state
+                    // Re-render relevant parts of the UI
+                    if (currentPage === 'profile') loadProfileContent();
+                } catch (error) {
+                    console.error("Manual properties refresh failed:", error);
+                    showMessageBox("Data Sync Error", `Failed to refresh properties data: ${error.message}`);
+                }
+            }
+        };
+
+
+        // --- Page Navigation and Rendering ---
+        function renderPage(pageId, data = {}) {
+            // Hide all pages first
+            document.querySelectorAll('.page-section').forEach(section => {
+                section.classList.remove('active');
+            });
+
+            // Activate the requested page
+            const targetPage = getElement(pageId + '-page');
+            if (targetPage) {
+                targetPage.classList.add('active');
+                currentPage = pageId; // Update global state
+
+                // Ensure Lucide icons are refreshed for the new content
+                if (typeof lucide !== 'undefined' && lucide.createIcons) {
+                    lucide.createIcons();
+                }
+
+                // Load content specific to the page
+                loadPageContent(pageId, data);
+            } else {
+                console.error(`Page section with ID '${pageId}-page' not found.`);
+                renderPage('home'); // Fallback to home if a page is not found
+            }
+
+            // Always ensure the modal is closed when navigating between pages
+            hideAddEditPropertyModal();
+        }
+
+        // Function to update header based on login status
+        function updateHeaderNav() {
+            const mainNavContainer = getElement('main-nav');
+            if (!mainNavContainer) return;
+
+            mainNavContainer.innerHTML = ''; // Clear existing buttons
+
+            // Always add the public buttons
+            mainNavContainer.innerHTML += `
+                <button id="nav-home" class="text-gray-600 font-medium hover:text-blue-600 transition duration-150">Home</button>
+                <button id="nav-features" class="text-gray-600 font-medium hover:text-blue-600 transition duration-150">Features</button>
+                <button id="nav-pricing" class="text-gray-600 font-medium hover:text-blue-600 transition duration-150">Pricing</button>
+            `;
+
+            if (IS_AUTHENTICATED) {
+                mainNavContainer.innerHTML += `
+                    <button id="nav-dashboard" class="text-gray-600 font-medium hover:text-blue-600 transition duration-150">Dashboard</button>
+                    <button id="nav-settings" class="text-gray-600 font-medium hover:text-blue-600 transition duration-150">Settings</button>
+                    <button id="nav-logout" class="text-gray-600 font-medium hover:text-gray-800 transition duration-150">Log Out</button>
+                `;
+            } else {
+                mainNavContainer.innerHTML += `
+                    <button id="nav-login" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition duration-150">Log In</button>
+                    <button id="nav-signup" class="bg-green-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-green-700 transition duration-150">Sign Up</button>
+                `;
+            }
+            attachGlobalEventListeners(); // Re-attach listeners after DOM update
+        }
+
+        // --- Page Specific Content Loaders ---
+        function loadPageContent(pageId, data = {}) {
+            if (pageId === 'profile') {
+                loadProfileContent();
+            } else if (pageId === 'userDetails') {
+                loadUserDetailsContent();
+            } else if (pageId === 'checklist') {
+                loadChecklistContent(data.property);
+            } else if (pageId === 'settings') {
+                loadSettingsContent();
+            }
+            // For other pages (home, auth, features, pricing), content is mostly static HTML.
+        }
+
+        function loadProfileContent() {
+            const profileUserName = getElement('profileUserName');
+            const profileUserEmail = getElement('profileUserEmail');
+            const profileUserId = getElement('profileUserId');
+            const profileUserPhone = getElement('profileUserPhone');
+            const profileUserCountry = getElement('profileUserCountry');
+            const profileUserBio = getElement('profileUserBio');
+            const profilePicture = getElement('profilePicture');
+            const propertiesListDiv = getElement('propertiesList');
+            const overallCompletionChartCanvas = getElement('overallCompletionChart');
+
+            if (currentUserData) {
+                profileUserName.textContent = currentUserData.fullName || 'N/A';
+                profileUserEmail.textContent = currentUserData.email || 'N/A';
+                profileUserId.textContent = CURRENT_USER_ID || 'N/A'; // Display user ID
+                profileUserPhone.textContent = currentUserData.phoneNumber || 'N/A';
+                profileUserCountry.textContent = currentUserData.country || 'N/A';
+                profileUserBio.textContent = currentUserData.bio || 'No bio provided.';
+                profilePicture.src = `https://placehold.co/100x100/e0e0e0/000000?text=${getInitials(currentUserData.fullName)}`;
+            } else {
+                profileUserName.textContent = 'Guest User';
+                profileUserEmail.textContent = 'guest@example.com';
+                profileUserId.textContent = CURRENT_USER_ID || 'N/A';
+                profileUserPhone.textContent = 'N/A';
+                profileUserCountry.textContent = 'N/A';
+                profileUserBio.textContent = 'No bio provided.';
+                profilePicture.src = `https://placehold.co/100x100/e0e0e0/000000?text=GU`;
+            }
+
+            propertiesListDiv.innerHTML = ''; // Clear previous list
+
+            if (userProperties.length === 0) {
+                propertiesListDiv.innerHTML = '<p class="text-gray-600 text-center">No properties added yet. Click "Add New Property" to get started!</p>';
+            } else {
+                userProperties.forEach(property => {
+                    // Refined property card structure for two rows of details and right-aligned buttons
+                    const propertyCard = `
+                        <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                            <!-- Property Details (Text Content) -->
+                            <div class="flex-grow min-w-0">
+                                <h3 class="text-lg font-semibold text-gray-800 mb-1">${property.nickname || 'Unnamed Property'}</h3>
+                                <div class="flex flex-col sm:flex-row sm:flex-wrap sm:gap-x-4 overflow-hidden">
+                                    <p class="text-sm text-gray-600 mb-2 overflow-hidden text-wrap">
+                                        ${property.type || 'N/A'} &bull; ${property.address || 'N/A'}, ${property.city || 'N/A'}
+                                    </p>
+                                    <p class="text-sm text-gray-600 overflow-hidden text-wrap">
+                                        ${property.bedrooms} Beds &bull; ${property.bathrooms} Baths &bull; Max ${property.occupancy} Guests
+                                    </p>
+                                </div>
+                            </div>
+                            <!-- Action Buttons -->
+                            <div class="flex flex-col sm:flex-row gap-2 mt-4 md:mt-0 flex-shrink-0">
+                                <button class="bg-green-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-600 transition duration-150 generate-checklist-btn" data-property-id="${property.id}">
+                                    <i data-lucide="clipboard-check" class="inline-block w-4 h-4 mr-1 -mt-0.5"></i> Generate Checklist
+                                </button>
+                                <button class="bg-yellow-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-yellow-600 transition duration-150 edit-property-btn" data-property-id="${property.id}">
+                                    <i data-lucide="edit" class="inline-block w-4 h-4 mr-1 -mt-0.5"></i> Edit
+                                </button>
+                                <button class="bg-red-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-600 transition duration-150 delete-property-btn" data-property-id="${property.id}" data-property-nickname="${property.nickname}">
+                                    <i data-lucide="trash-2" class="inline-block w-4 h-4 mr-1 -mt-0.5"></i> Delete
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    propertiesListDiv.insertAdjacentHTML('beforeend', propertyCard);
+                });
+                lucide.createIcons(); // Re-render icons for dynamically added content
+            }
+
+            // --- Chart.js Visualization for Overall Completion ---
+            if (overallCompletionChartCanvas) {
+                const ctx = overallCompletionChartCanvas.getContext('2d');
+                // Destroy previous chart instance if exists
+                if (chartInstance) {
+                    chartInstance.destroy();
+                }
+
+                // Simulate overall completion data
+                const totalProperties = userProperties.length;
+                // For a real app, you'd fetch completion status for each property and sum it up
+                // Here, a simple mock is used based on property nickname
+                const completedChecklists = userProperties.filter(p => p.nickname.includes('Cabin')).length;
+                const incompleteChecklists = totalProperties - completedChecklists;
+
+                chartInstance = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: [`Completed (${completedChecklists})`, `Incomplete (${incompleteChecklists})`],
+                        datasets: [{
+                            data: [completedChecklists, incompleteChecklists],
+                            backgroundColor: ['#22C55E', '#EF4444'], // Green for complete, Red for incomplete
+                            hoverOffset: 10
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false, // CRITICAL for responsiveness
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    font: {
+                                        size: 14,
+                                        family: 'Inter, sans-serif'
+                                    }
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.label || '';
+                                        if (label) {
+                                            label += ': ';
+                                        }
+                                        if (context.parsed !== null) {
+                                            label += context.parsed;
+                                        }
+                                        return label;
+                                    }
+                                }
+                            }
+                        },
+                        layout: {
+                            padding: 10
+                        },
+                        animation: { // Disable animation on updates if needed, but recreate on data change is fine
+                            duration: 800, // standard animation duration on creation
+                            easing: 'easeOutQuart'
+                        }
+                    }
+                });
+            }
+        }
+
+        function loadUserDetailsContent() {
+            // No specific pre-fill for this page as it's intended for initial input.
+        }
+
+        function loadChecklistContent(property) {
+            if (!property) {
+                getElement('checklistPropertyName').textContent = 'N/A';
+                getElement('generationDate').textContent = 'N/A';
+                getElement('checklistItems').innerHTML = '<p class="text-gray-600 text-center">No property selected. Please go back to Dashboard and select a property.</p>';
+                return;
+            }
+
+            selectedPropertyForChecklist = property; // Store globally for action handlers
+            getElement('checklistPropertyName').textContent = property.nickname || 'Unnamed Property';
+            getElement('generationDate').textContent = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+            const checklistItemsDiv = getElement('checklistItems');
+            checklistItemsDiv.innerHTML = ''; // Clear existing items
+
+            const items = [
+                { id: 'item1', text: 'Verify smoke detectors are functional' },
+                { id: 'item2', text: 'Ensure carbon monoxide detectors are present and working' },
+                { id: 'item3', text: 'Check fire extinguisher is charged and accessible' },
+                { id: 'item4', text: 'Confirm clear exit routes' },
+                { id: 'item5', text: 'First-aid kit is fully stocked and available' },
+                { id: 'item6', text: 'Emergency contact information is visible' },
+            ];
+
+            items.forEach(item => {
+                const itemHtml = `
+                    <div class="checklist-item-wrapper">
+                        <label class="flex items-center space-x-3 cursor-pointer">
+                            <input type="checkbox" data-item-id="${item.id}" class="form-checkbox h-5 w-5 text-green-600 rounded-md" />
+                            <span class="item-text text-lg text-gray-800">${item.text}</span>
+                        </label>
+                        <button class="text-gray-500 hover:text-gray-700" title="More Info"><i data-lucide="info" class="w-5 h-5"></i></button>
+                    </div>
+                `;
+                checklistItemsDiv.insertAdjacentHTML('beforeend', itemHtml);
+            });
+            lucide.createIcons(); // Re-render icons for dynamically added content
+        }
+
+        function loadSettingsContent() {
+            const settingsName = getElement('settingsName');
+            const settingsEmail = getElement('settingsEmail');
+            const settingsPhone = getElement('settingsPhone');
+            const settingsCountry = getElement('settingsCountry');
+            const settingsBio = getElement('settingsBio');
+
+            if (currentUserData) {
+                settingsName.value = currentUserData.fullName || '';
+                settingsEmail.value = currentUserData.email || 'N/A'; // Email from auth state or profile
+                settingsPhone.value = currentUserData.phoneNumber || '';
+                settingsCountry.value = currentUserData.country || '';
+                settingsBio.value = currentUserData.bio || '';
+            } else {
+                settingsName.value = '';
+                settingsEmail.value = 'N/A';
+                settingsPhone.value = '';
+                settingsCountry.value = '';
+                settingsBio.value = '';
+            }
+        }
+
+        // --- Event Handlers ---
+        async function handleLoginSubmit(event) {
+            event.preventDefault();
+            const email = getElement('loginEmail').value;
+            const password = getElement('loginPassword').value;
+            const loginMessage = getElement('loginMessage');
+            const loginSubmitBtn = getElement('loginSubmitBtn');
+
+            loginMessage.classList.add('hidden');
+            showLoading('loginSubmitBtn', 'Log In');
+
+            try {
+                // Call the actual API login function
+                await userApi.login(email, password);
+                // _mockAuth._updateUser is called internally by userApi.login, which then triggers onAuthStateChanged
+                showMessageBox("Login Successful", "Welcome back!", () => renderPage('profile'));
+            } catch (error) {
+                loginMessage.textContent = error.message;
+                loginMessage.classList.remove('hidden');
+            } finally {
+                hideLoading('loginSubmitBtn');
+            }
+        }
+
+        async function handleSignupSubmit(event) {
+            event.preventDefault();
+            const email = getElement('signupEmail').value;
+            const password = getElement('signupPassword').value;
+            const confirmPassword = getElement('confirmPassword').value;
+            const termsAccepted = getElement('terms').checked;
+            const signupMessage = getElement('signupMessage');
+            const signupSubmitBtn = getElement('signupSubmitBtn');
+
+            signupMessage.classList.add('hidden');
+
+            if (password !== confirmPassword) {
+                signupMessage.textContent = 'Passwords do not match.';
+                signupMessage.classList.remove('hidden');
+                return;
+            }
+            if (!termsAccepted) {
+                signupMessage.textContent = 'You must accept the terms and privacy policy.';
+                signupMessage.classList.remove('hidden');
+                return;
+            }
+
+            showLoading('signupSubmitBtn', 'Sign Up');
+            try {
+                // Call the actual API signup function
+                await userApi.signup(email, password);
+                // _mockAuth._updateUser is called internally by userApi.signup, which then triggers onAuthStateChanged
+                showMessageBox("Signup Successful", "Account created successfully! Please complete your profile.", () => renderPage('userDetails'));
+            } catch (error) {
+                signupMessage.textContent = error.message;
+                signupMessage.classList.remove('hidden');
+            } finally {
+                hideLoading('signupSubmitBtn');
+            }
+        }
+
+        async function handleSaveUserDetails(event) {
+            event.preventDefault();
+            const saveDetailsMessage = getElement('saveDetailsMessage');
+            const saveDetailsBtn = getElement('saveDetailsBtn');
+
+            const fullName = getElement('fullName').value.trim();
+            const phoneNumber = getElement('phoneNumber').value.trim();
+            const country = getElement('country').value.trim();
+            const bio = getElement('bio').value.trim();
+            const propertyNickname = getElement('propertyNickname').value.trim();
+            const propertyType = getElement('propertyType').value.trim();
+            const address = getElement('address').value.trim();
+            const city = getElement('city').value.trim();
+            const state = getElement('state').value.trim();
+            const zip = getElement('zip').value.trim();
+            const propertyCountry = getElement('propertyCountry').value.trim();
+            const bedrooms = getElement('bedrooms').value;
+            const bathrooms = getElement('bathrooms').value;
+            const occupancy = getElement('occupancy').value;
+
+            saveDetailsMessage.classList.add('hidden');
+            showLoading('saveDetailsBtn', 'Save and Continue');
+
+            if (!fullName || !country || !propertyNickname || !address || !city || !state || !zip || !propertyCountry || bedrooms === '' || bathrooms === '' || occupancy === '') {
+                saveDetailsMessage.textContent = 'Please fill in all required fields.';
+                saveDetailsMessage.classList.remove('hidden');
+                hideLoading('saveDetailsBtn');
+                return;
+            }
+            if (!CURRENT_USER_ID || !_mockAuth._currentUser.accessToken) { // Ensure user is authenticated and has a token
+                saveDetailsMessage.textContent = 'Authentication required. Please log in or sign up again.';
+                saveDetailsMessage.classList.remove('hidden');
+                hideLoading('saveDetailsBtn');
+                return;
+            }
+            // Ensure currentUserData has an email from the auth state
+            if (!currentUserData || !currentUserData.email) {
+                saveDetailsMessage.textContent = 'Authentication error: User email not found. Please log in again.';
+                saveDetailsMessage.classList.remove('hidden');
+                hideLoading('saveDetailsBtn');
+                return;
+            }
+
+            try {
+                // API Call: Save/Update User Profile (Method: PUT)
+                // URL: ${API_BASE_URL}/users/{userId}/profile
+                // Request Body: {fullName, phoneNumber, country, bio, email, uid}
+                // Expected Response: {success: true, message: "..."}
+                await userApi.saveUserProfile(
+                    CURRENT_USER_ID,
+                    {
+                        fullName, phoneNumber, country, bio,
+                        email: currentUserData.email, // Use the email from current authenticated user data
+                        uid: CURRENT_USER_ID
+                    },
+                    _mockAuth._currentUser.accessToken // Pass access token
+                );
+
+                // API Call: Add New Property (Method: POST)
+                // URL: ${API_BASE_URL}/users/{userId}/properties
+                // Request Body: {nickname, type, address, city, state, zip, country, bedrooms, bathrooms, occupancy, createdAt}
+                // Expected Response: {success: true, data: {id: "..."}}
+                await propertyApi.addProperty(
+                    CURRENT_USER_ID,
+                    {
+                        nickname: propertyNickname, type: propertyType, address, city, state, zip, country: propertyCountry,
+                        bedrooms: parseInt(bedrooms), bathrooms: parseFloat(bathrooms), occupancy: parseInt(occupancy),
+                        createdAt: new Date().toISOString()
+                    },
+                    _mockAuth._currentUser.accessToken // Pass access token
+                );
+
+                showMessageBox("Success", "Profile and property saved!", () => renderPage('profile'));
+
+            } catch (error) {
+                saveDetailsMessage.textContent = `Failed to save: ${error.message}`;
+                saveDetailsMessage.classList.remove('hidden');
+            } finally {
+                hideLoading('saveDetailsBtn');
+            }
+        }
+
+        async function handleLogout() {
+            try {
+                // Clear any active polling intervals before logging out
+                for (const key in apiPollingIntervals) {
+                    if (apiPollingIntervals[key]) {
+                        clearInterval(apiPollingIntervals[key]);
+                        apiPollingIntervals[key] = null;
+                    }
+                }
+                // Call the mock signOut which updates _mockAuth._currentUser to null
+                // No direct backend API for logout assumed, client-side token invalidation is enough.
+                await userApi.signOut();
+                showMessageBox("Logged Out", "You have been successfully logged out.");
+            } catch (error) {
+                console.error("Logout Error:", error);
+                showMessageBox("Logout Error", `Failed to log out: ${error.message}`);
+            }
+        }
+
+        function showAddEditPropertyModal(property = null) {
+            const modalOverlay = getElement('addEditPropertyModalOverlay');
+            const modalTitle = getElement('modalTitle');
+            const form = getElement('addEditPropertyForm');
+            const modalSaveBtn = getElement('modalSaveBtn');
+            const modalErrorMessage = getElement('modalErrorMessage');
+
+            modalErrorMessage.classList.add('hidden'); // Clear previous errors
+
+            if (property) {
+                modalTitle.textContent = 'Edit Property';
+                modalSaveBtn.textContent = 'Update Property';
+                getElement('modalPropertyId').value = property.id;
+                getElement('modalNickname').value = property.nickname;
+                getElement('modalType').value = property.type;
+                getElement('modalAddress').value = property.address;
+                getElement('modalCity').value = property.city;
+                getElement('modalState').value = property.state;
+                getElement('modalZip').value = property.zip;
+                getElement('modalCountry').value = property.country;
+                getElement('modalBedrooms').value = property.bedrooms;
+                getElement('modalBathrooms').value = property.bathrooms;
+                getElement('modalOccupancy').value = property.occupancy;
+            } else {
+                modalTitle.textContent = 'Add New Property';
+                modalSaveBtn.textContent = 'Save Property';
+                form.reset(); // Clear form for new property
+                getElement('modalPropertyId').value = '';
+            }
+            modalOverlay.classList.remove('hidden');
+            modalOverlay.classList.add('active'); // Trigger transition
+            lucide.createIcons(); // Re-render icons inside modal
+        }
+
+        function hideAddEditPropertyModal() {
+            const modalOverlay = getElement('addEditPropertyModalOverlay');
+            modalOverlay.classList.remove('active');
+            modalOverlay.classList.add('hidden'); // Hide after transition
+        }
+
+        async function handleAddEditPropertySubmit(event) {
+            event.preventDefault();
+            const modalSaveBtn = getElement('modalSaveBtn');
+            const modalErrorMessage = getElement('modalErrorMessage');
+
+            // Get values and trim them
+            const nickname = getElement('modalNickname').value.trim();
+            const type = getElement('modalType').value.trim();
+            const address = getElement('modalAddress').value.trim();
+            const city = getElement('modalCity').value.trim();
+            const state = getElement('modalState').value.trim();
+            const zip = getElement('modalZip').value.trim();
+            const country = getElement('modalCountry').value.trim();
+            const bedrooms = getElement('modalBedrooms').value; // Number inputs automatically handle trim for valid numbers
+            const bathrooms = getElement('modalBathrooms').value;
+            const occupancy = getElement('modalOccupancy').value;
+
+            modalErrorMessage.classList.add('hidden');
+            showLoading('modalSaveBtn', modalSaveBtn.textContent);
+
+            // Validate all fields after trimming
+            if (!nickname || !type || !address || !city || !state || !zip || !country || bedrooms === '' || bathrooms === '' || occupancy === '') {
+                modalErrorMessage.textContent = 'Please fill in all required fields.';
+                modalErrorMessage.classList.remove('hidden');
+                hideLoading('modalSaveBtn');
+                return;
+            }
+            if (!CURRENT_USER_ID || !_mockAuth._currentUser.accessToken) { // Ensure user is authenticated and has a token
+                modalErrorMessage.textContent = 'User not authenticated. Cannot save property.';
+                modalErrorMessage.classList.remove('hidden');
+                hideLoading('modalSaveBtn');
+                return;
+            }
+
+            const propertyData = {
+                nickname, type, address, city, state, zip, country,
+                bedrooms: parseInt(bedrooms), bathrooms: parseFloat(bathrooms), occupancy: parseInt(occupancy),
+                updatedAt: new Date().toISOString()
+            };
+
+            const propertyId = getElement('modalPropertyId').value;
+
+            try {
+                if (propertyId) {
+                    // API Call: Update Existing Property (Method: PUT)
+                    // URL: ${API_BASE_URL}/users/{userId}/properties/{propertyId}
+                    // Request Body: {nickname, type, address, city, state, zip, country, bedrooms, bathrooms, occupancy, updatedAt}
+                    // Expected Response: {success: true, message: "..."}
+                    await propertyApi.updateProperty(CURRENT_USER_ID, propertyId, propertyData, _mockAuth._currentUser.accessToken);
+                    showMessageBox("Success", `Property "${nickname}" updated successfully!`, hideAddEditPropertyModal);
+                } else {
+                    propertyData.createdAt = new Date().toISOString();
+                    // API Call: Add New Property (Method: POST)
+                    // URL: ${API_BASE_URL}/users/{userId}/properties
+                    // Request Body: {nickname, type, address, city, state, zip, country, bedrooms, bathrooms, occupancy, createdAt}
+                    // Expected Response: {success: true, data: {id: "..."}}
+                    await propertyApi.addProperty(CURRENT_USER_ID, propertyData, _mockAuth._currentUser.accessToken);
+                    showMessageBox("Success", `Property "${nickname}" added successfully!`, hideAddEditPropertyModal);
+                }
+            } catch (error) {
+                modalErrorMessage.textContent = `Failed to save property: ${error.message}`;
+                modalErrorMessage.classList.remove('hidden');
+            } finally {
+                hideLoading('modalSaveBtn');
+            }
+        }
+
+        function handleProfileEditBtnClick() {
+            renderPage('settings');
+        }
+
+        function handlePropertyDeleteBtnClick(event) {
+            const propertyId = event.currentTarget.dataset.propertyId;
+            const nickname = event.currentTarget.dataset.propertyNickname;
+
+            showMessageBox(
+                "Confirm Delete",
+                `Are you sure you want to delete "${nickname || 'this property'}"? This action cannot be undone.`,
+                'confirm',
+                async () => { // On Confirm
+                    if (!CURRENT_USER_ID || !_mockAuth._currentUser.accessToken) {
+                        showMessageBox("Error", "User not authenticated. Cannot delete property.");
+                        return;
+                    }
+                    try {
+                        // API Call: Delete Property (Method: DELETE)
+                        // URL: ${API_BASE_URL}/users/{userId}/properties/{propertyId}
+                        // Request Body: {} (empty)
+                        // Expected Response: {success: true, message: "..."}
+                        await propertyApi.deleteProperty(CURRENT_USER_ID, propertyId, _mockAuth._currentUser.accessToken);
+                        showMessageBox("Deleted!", "Property successfully deleted.");
+                    }
+                    catch (error) {
+                        console.error("Delete Property Error:", error);
+                        showMessageBox("Error", `Failed to delete property: ${error.message}`);
+                    }
+                }
+            );
+        }
+
+        function handleGenerateChecklistBtnClick(event) {
+            const propertyId = event.currentTarget.dataset.propertyId;
+            const property = userProperties.find(p => p.id === propertyId);
+            if (property) {
+                renderPage('checklist', { property });
+            } else {
+                showMessageBox("Error", "Property not found.");
+            }
+        }
+
+        function handleChecklistItemToggle(event) {
+            const checkbox = event.target;
+            const wrapper = checkbox.closest('.checklist-item-wrapper');
+            if (checkbox.checked) {
+                wrapper.classList.add('completed');
+            } else {
+                wrapper.classList.remove('completed');
+            }
+            // In a real app, you would save this checklist item's status via an API call
+        }
+
+        function handleMarkAllComplete() {
+            showMessageBox(
+                "Mark All Complete",
+                "Are you sure you want to mark all checklist items as complete?",
+                'confirm',
+                () => {
+                    document.querySelectorAll('#checklistItems input[type="checkbox"]').forEach(checkbox => {
+                        checkbox.checked = true;
+                        checkbox.dispatchEvent(new Event('change')); // Trigger change to update styling
+                    });
+                    showMessageBox("Success", "All items marked as complete!");
+                }
+            );
+        }
+
+        function handleDownloadPdf() {
+            showMessageBox("Download PDF", "Generating PDF for this checklist. (Simulated functionality)");
+        }
+
+        function handleShareChecklist() {
+            showMessageBox("Share Checklist", "Generating a shareable link for this checklist. (Simulated functionality)");
+        }
+
+        function handleSettingsTabClick(event) {
+            const tabId = event.currentTarget.id;
+            // For this mock, only 'profile' tab content is implemented.
+            // Other tabs will show a generic message.
+            if (tabId !== 'settings-tab-profile') {
+                showMessageBox("Coming Soon", `${event.currentTarget.textContent} settings are coming soon!`);
+            }
+            // Logic to visually activate/deactivate tabs can be added here
+            document.querySelectorAll('#settings-page .border-b-2').forEach(btn => {
+                btn.classList.remove('border-blue-600', 'text-blue-600');
+                btn.classList.add('border-transparent', 'text-gray-500');
+            });
+            event.currentTarget.classList.remove('border-transparent', 'text-gray-500');
+            event.currentTarget.classList.add('border-blue-600', 'text-blue-600');
+        }
+
+        function handleChangePassword() {
+            showMessageBox("Coming Soon", "Password change functionality is coming soon!");
+        }
+
+        function handleEnableTwoFactor() {
+            showMessageBox("Coming Soon", "Two-Factor Authentication is coming soon!");
+        }
+
+        async function handleUpdateProfile(event) {
+            event.preventDefault();
+            const updateProfileMessage = getElement('updateProfileMessage');
+            const updateProfileBtn = getElement('updateProfileBtn');
+
+            const fullName = getElement('settingsName').value.trim();
+            const phoneNumber = getElement('settingsPhone').value.trim();
+            const country = getElement('settingsCountry').value.trim();
+            const bio = getElement('settingsBio').value.trim();
+
+            updateProfileMessage.classList.add('hidden');
+            showLoading('updateProfileBtn', 'Save Changes');
+
+            if (!fullName || !country) {
+                updateProfileMessage.textContent = 'Full Name and Country are required.';
+                updateProfileMessage.classList.remove('hidden');
+                hideLoading('updateProfileBtn');
+                return;
+            }
+            if (!CURRENT_USER_ID || !_mockAuth._currentUser.accessToken) { // Ensure user is authenticated and has a token
+                updateProfileMessage.textContent = 'User not authenticated. Cannot update profile.';
+                updateProfileMessage.classList.remove('hidden');
+                hideLoading('updateProfileBtn');
+                return;
+            }
+            // Ensure currentUserData has an email for the profile update
+            if (!currentUserData || !currentUserData.email) {
+                updateProfileMessage.textContent = 'Authentication error: User email not found. Please log in again.';
+                updateProfileMessage.classList.remove('hidden');
+                hideLoading('updateProfileBtn');
+                return;
+            }
+
+            try {
+                // API Call: Save/Update User Profile (Method: PUT)
+                // URL: ${API_BASE_URL}/users/{userId}/profile
+                // Request Body: {fullName, phoneNumber, country, bio, email, uid}
+                // Expected Response: {success: true, message: "..."}
+                await userApi.saveUserProfile(
+                    CURRENT_USER_ID,
+                    {
+                        fullName, phoneNumber, country, bio,
+                        email: currentUserData.email, // Use the email from current authenticated user data
+                        uid: CURRENT_USER_ID
+                    },
+                    _mockAuth._currentUser.accessToken
+                );
+                showMessageBox("Success", "Profile updated successfully!");
+            } catch (error) {
+                updateProfileMessage.textContent = `Failed to update profile: ${error.message}`;
+                updateProfileMessage.classList.remove('hidden');
+            } finally {
+                hideLoading('updateProfileBtn');
+            }
+        }
+
+        // --- Global Event Listeners (re-attached on DOM changes for dynamic content) ---
+        function attachGlobalEventListeners() {
+            // Header Nav
+            const headerLogoBtn = getElement('header-logo-btn');
+            if (headerLogoBtn) headerLogoBtn.onclick = () => renderPage(IS_AUTHENTICATED ? 'profile' : 'home');
+
+            const navHome = getElement('nav-home');
+            if (navHome) navHome.onclick = () => renderPage('home');
+
+            const navFeatures = getElement('nav-features');
+            if (navFeatures) navFeatures.onclick = () => renderPage('features');
+
+            const navPricing = getElement('nav-pricing');
+            if (navPricing) navPricing.onclick = () => renderPage('pricing');
+
+            if (IS_AUTHENTICATED) {
+                const navDashboard = getElement('nav-dashboard');
+                const navSettings = getElement('nav-settings');
+                const navLogout = getElement('nav-logout');
+
+                if (navDashboard) navDashboard.onclick = () => renderPage('profile');
+                if (navSettings) navSettings.onclick = () => renderPage('settings');
+                if (navLogout) navLogout.onclick = handleLogout;
+            } else {
+                const navLogin = getElement('nav-login');
+                if (navLogin) navLogin.onclick = () => renderPage('auth');
+                const navSignup = getElement('nav-signup');
+                if (navSignup) navSignup.onclick = () => renderPage('auth');
+            }
+
+            // Home Page specific buttons
+            const homeSignupBtn = getElement('home-signup-btn');
+            const homeLearnMoreBtn = getElement('home-learn-more-btn');
+            if (homeSignupBtn) homeSignupBtn.onclick = () => renderPage('auth');
+            if (homeLearnMoreBtn) homeLearnMoreBtn.onclick = () => renderPage('features');
+
+            // Auth Page forms
+            const loginForm = getElement('loginForm');
+            const signupForm = getElement('signupForm');
+            if (loginForm) {
+                loginForm.removeEventListener('submit', handleLoginSubmit); // Prevent double attachment
+                loginForm.addEventListener('submit', handleLoginSubmit);
+            }
+            if (signupForm) {
+                signupForm.removeEventListener('submit', handleSignupSubmit); // Prevent double attachment
+                signupForm.addEventListener('submit', handleSignupSubmit);
+            }
+
+            // User Details Page
+            const profileDetailsForm = getElement('profileDetailsForm');
+            if (profileDetailsForm) {
+                profileDetailsForm.removeEventListener('submit', handleSaveUserDetails);
+                profileDetailsForm.addEventListener('submit', handleSaveUserDetails);
+            }
+
+            // Profile Page
+            const editProfileBtn = getElement('editProfileBtn');
+            const addNewPropertyBtn = getElement('addNewPropertyBtn');
+            const propertiesListDiv = getElement('propertiesList');
+
+            if (editProfileBtn) editProfileBtn.onclick = handleProfileEditBtnClick;
+            if (addNewPropertyBtn) addNewPropertyBtn.onclick = () => showAddEditPropertyModal();
+
+            // Delegate events for dynamically added property buttons
+            if (propertiesListDiv) {
+                propertiesListDiv.removeEventListener('click', handlePropertiesListClick); // Prevent duplicate listeners
+                propertiesListDiv.addEventListener('click', handlePropertiesListClick);
+            }
+
+            // Add/Edit Property Modal
+            const closeModalBtn = getElement('closeModalBtn');
+            const modalCancelBtn = getElement('modalCancelBtn');
+            const addEditPropertyForm = getElement('addEditPropertyForm');
+            if (closeModalBtn) closeModalBtn.onclick = hideAddEditPropertyModal;
+            if (modalCancelBtn) modalCancelBtn.onclick = hideAddEditPropertyModal;
+            if (addEditPropertyForm) {
+                addEditPropertyForm.removeEventListener('submit', handleAddEditPropertySubmit);
+                addEditPropertyForm.addEventListener('submit', handleAddEditPropertySubmit);
+            }
+
+            // Checklist Page
+            const checklistItemsDiv = getElement('checklistItems');
+            if (checklistItemsDiv) {
+                checklistItemsDiv.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                    checkbox.onchange = handleChecklistItemToggle;
+                });
+            }
+            const markAllCompleteBtn = getElement('markAllCompleteBtn');
+            const downloadPdfBtn = getElement('downloadPdfBtn');
+            const shareChecklistBtn = getElement('shareChecklistBtn');
+            if (markAllCompleteBtn) markAllCompleteBtn.onclick = handleMarkAllComplete;
+            if (downloadPdfBtn) downloadPdfBtn.onclick = handleDownloadPdf;
+            if (shareChecklistBtn) shareChecklistBtn.onclick = handleShareChecklist;
+
+            // Features Page
+            const featuresToPricingBtn = getElement('features-to-pricing-btn');
+            if (featuresToPricingBtn) featuresToPricingBtn.onclick = () => renderPage('pricing');
+
+            // Pricing Page
+            const getStartedFreeBtn = getElement('getStartedFreeBtn');
+            const chooseProBtn = getElement('chooseProBtn');
+            const contactSalesBtn = getElement('contactSalesBtn');
+            if (getStartedFreeBtn) getStartedFreeBtn.onclick = () => showMessageBox("Free Plan", "You've selected the Free plan! Sign up to get started.");
+            if (chooseProBtn) chooseProBtn.onclick = () => showMessageBox("Pro Plan", "You've selected the Pro plan! Proceed to checkout. (Simulated)");
+            if (contactSalesBtn) contactSalesBtn.onclick = () => showMessageBox("Business Plan", "Please contact sales for a custom Business plan quote. (Simulated)");
+
+            // Settings Page
+            const updateProfileForm = getElement('updateProfileForm');
+            const settingsTabProfile = getElement('settings-tab-profile');
+            const settingsTabSubscription = getElement('settings-tab-subscription');
+            const settingsTabNotifications = getElement('settings-tab-notifications');
+            const settingsTabIntegrations = getElement('settings-tab-integrations');
+            const changePasswordBtn = getElement('changePasswordBtn');
+            const enableTwoFactorBtn = getElement('enableTwoFactorBtn');
+
+            if (updateProfileForm) {
+                updateProfileForm.removeEventListener('submit', handleUpdateProfile);
+                updateProfileForm.addEventListener('submit', handleUpdateProfile);
+            }
+            if (settingsTabProfile) settingsTabProfile.onclick = handleSettingsTabClick;
+            if (settingsTabSubscription) settingsTabSubscription.onclick = handleSettingsTabClick;
+            if (settingsTabNotifications) settingsTabNotifications.onclick = handleSettingsTabClick;
+            if (settingsTabIntegrations) settingsTabIntegrations.onclick = handleSettingsTabClick;
+            if (changePasswordBtn) changePasswordBtn.onclick = handleChangePassword;
+            if (enableTwoFactorBtn) enableTwoFactorBtn.onclick = handleEnableTwoFactor;
+        }
+
+        // Event delegation for properties list buttons
+        function handlePropertiesListClick(event) {
+            const target = event.target;
+            const propertyButton = target.closest('button');
+            if (!propertyButton) return;
+
+            if (propertyButton.classList.contains('generate-checklist-btn')) {
+                handleGenerateChecklistBtnClick(event);
+            } else if (propertyButton.classList.contains('edit-property-btn')) {
+                const propertyId = propertyButton.dataset.propertyId;
+                const property = userProperties.find(p => p.id === propertyId);
+                showAddEditPropertyModal(property);
+            } else if (propertyButton.classList.contains('delete-property-btn')) {
+                handlePropertyDeleteBtnClick(event);
+            }
+        }
+
+
+        // --- Main App Initialization ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // 1. Immediately render the initial, logged-out Home page.
+            // This ensures the UI is visible and correct from the very start.
+            renderPage('home');
+            updateHeaderNav(); // Set header to "Log In / Sign Up"
+
+            // 2. Set up the authentication state listener.
+            // This listener will react to any *future* changes in the auth state,
+            // including the result of an explicit login/signup, or the initial
+            // Canvas token processing. It handles UI updates and navigation after auth changes.
+            _mockAuth.onAuthStateChanged(async (user) => {
+                if (user && user.uid) { // Ensure user and UID are present after authentication
+                    IS_AUTHENTICATED = true;
+                    CURRENT_USER_ID = user.uid;
+
+                    // Update currentUserData from the auth object (email, uid, accessToken)
+                    // Profile details (fullName, phone, country, bio) will be fetched by _apiBackedFirestore.onSnapshot
+                    currentUserData = {
+                        uid: user.uid,
+                        email: user.email,
+                        accessToken: user.accessToken, // Store accessToken here
+                        fullName: currentUserData ? currentUserData.fullName : 'N/A', // Preserve if already set
+                        phoneNumber: currentUserData ? currentUserData.phoneNumber : 'N/A',
+                        country: currentUserData ? currentUserData.country : 'N/A',
+                        bio: currentUserData ? currentUserData.bio : 'No bio provided.'
+                    };
+
+
+                    // Unsubscribe previous polling intervals if they exist (important for re-login or switching users)
+                    for (const key in apiPollingIntervals) {
+                        if (apiPollingIntervals[key]) {
+                            clearInterval(apiPollingIntervals[key]);
+                            apiPollingIntervals[key] = null;
+                        }
+                    }
+
+                    // Establish "Firestore" listeners which now use API polling for the authenticated user.
+                    // These listeners will update `currentUserData` and `userProperties` in response to data changes.
+                    // API Call: Retrieve User Profile (Method: GET)
+                    // URL: ${API_BASE_URL}/users/{userId}/profile
+                    // Called by _apiBackedFirestore.onSnapshot for profile data.
+                    _apiBackedFirestore.onSnapshot(_apiBackedFirestore.doc(null, `artifacts/${CANVAS_APP_ID}/users/${CURRENT_USER_ID}/user_profiles/profile`), (docSnap) => {
+                        const fetchedProfileData = docSnap.exists() ? docSnap.data() : null;
+                        if (fetchedProfileData) {
+                            // Merge fetched data with the current user data, prioritizing fetched fields
+                            currentUserData = { ...currentUserData, ...fetchedProfileData };
+                        } else {
+                            // If profile doesn't exist, ensure fields are cleared/defaulted
+                            currentUserData = {
+                                ...currentUserData, // Keep UID, email, accessToken from auth
+                                fullName: 'N/A',
+                                phoneNumber: 'N/A',
+                                country: 'N/A',
+                                bio: 'No bio provided.'
+                            };
+                        }
+                        updateHeaderNav(); // Update header (e.g., profile initials)
+                        if (currentPage === 'profile') loadProfileContent();
+                        if (currentPage === 'settings') loadSettingsContent();
+                    }, (error) => { console.error("User data API snapshot error (profile):", error); });
+
+                    // API Call: Retrieve User Properties List (Method: GET)
+                    // URL: ${API_BASE_URL}/users/{userId}/properties
+                    // Called by _apiBackedFirestore.onSnapshot for properties data.
+                    _apiBackedFirestore.onSnapshot(_apiBackedFirestore.collection(null, `artifacts/${CANVAS_APP_ID}/users/${CURRENT_USER_ID}/user_properties`), (snapshot) => {
+                        userProperties = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                        updateHeaderNav(); // Update header
+                        if (currentPage === 'profile') loadProfileContent();
+                    }, (error) => { console.error("Properties data API snapshot error:", error); });
+
+
+                    // After authentication (either explicit login/signup or Canvas token),
+                    // determine where to navigate IF the user is currently on a public page (home, auth, features, pricing).
+                    // This prevents navigating away if they're already on a dashboard or settings page.
+                    if (['home', 'auth', 'features', 'pricing'].includes(currentPage)) {
+                        // Give it a brief moment for the initial API calls/polling to populate currentUserData
+                        setTimeout(() => {
+                            // A simple check for profile completion: assumes `fullName` is mandatory after initial signup
+                            const hasUserDetailsSaved = !!currentUserData && !!currentUserData.fullName && currentUserData.fullName !== 'N/A';
+
+                            if (!hasUserDetailsSaved) {
+                                // If no user details are saved (e.g., after initial signup or first Canvas auth), go to details page
+                                renderPage('userDetails');
+                            } else {
+                                // If user details exist, go to their profile/dashboard
+                                renderPage('profile');
+                            }
+                        }, 50); // Small delay to allow initial API fetches
+                    }
+
+                } else {
+                    // User is NOT authenticated (explicitly logged out, or no session/token)
+                    IS_AUTHENTICATED = false;
+                    CURRENT_USER_ID = null;
+                    currentUserData = null; // Clear user data in memory
+                    userProperties = []; // Clear properties in memory
+
+                    // Clear any active polling intervals
+                    for (const key in apiPollingIntervals) {
+                        if (apiPollingIntervals[key]) {
+                            clearInterval(apiPollingIntervals[key]);
+                            apiPollingIntervals[key] = null;
+                        }
+                    }
+
+                    updateHeaderNav(); // Update header to show login/signup state
+                    // If the user is currently on a private page, redirect them to home.
+                    // Otherwise, if they are already on a public page, leave them there.
+                    if (!['home', 'auth', 'features', 'pricing'].includes(currentPage)) {
+                        renderPage('home');
+                    }
+                }
+            });
+
+            // 3. Trigger the initial authentication state check for Canvas.
+            // This is done once after the DOM and listener setup.
+            if (CANVAS_INITIAL_AUTH_TOKEN) {
+                // Using a small timeout here to ensure onAuthStateChanged is fully registered
+                // before this potential synchronous user update from the token.
+                setTimeout(() => {
+                    _mockAuth.signInWithCustomToken(CANVAS_INITIAL_AUTH_TOKEN);
+                }, 0);
+            }
+
+            // Attach all event listeners to the DOM once it's ready.
+            attachGlobalEventListeners();
+        });
+    </script>
+</body>
+</html>
