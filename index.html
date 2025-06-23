@@ -2020,7 +2020,7 @@
                 // Call the actual API login function
                 await userApi.login(email, password);
                 // _mockAuth._updateUser is called internally by userApi.login, which then triggers onAuthStateChanged
-                showMessageBox("Login Successful", "Welcome back!", () => renderPage('profile'));
+                // No need to renderPage here directly, onAuthStateChanged will handle it
             } catch (error) {
                 loginMessage.textContent = error.message;
                 loginMessage.classList.remove('hidden');
@@ -2056,7 +2056,7 @@
                 // Call the actual API signup function
                 await userApi.signup(email, password);
                 // _mockAuth._updateUser is called internally by userApi.signup, which then triggers onAuthStateChanged
-                showMessageBox("Signup Successful", "Account created successfully! Please complete your profile.", () => renderPage('userDetails'));
+                // No need to renderPage here directly, onAuthStateChanged will handle it
             } catch (error) {
                 signupMessage.textContent = error.message;
                 signupMessage.classList.remove('hidden');
@@ -2580,6 +2580,8 @@
             renderPage('home');
             updateHeaderNav(); // Set header to "Log In / Sign Up"
 
+            let initialAuthCheckDone = false; // Flag to ensure initial redirection happens only once after auth
+
             // 2. Set up the authentication state listener.
             // This listener will react to any *future* changes in the auth state,
             // including the result of an explicit login/signup, or the initial
@@ -2589,14 +2591,13 @@
                     IS_AUTHENTICATED = true;
                     CURRENT_USER_ID = user.uid;
 
-                    // Update currentUserData from the auth object (email, uid, accessToken)
-                    // Profile details (fullName, phone, country, bio) will be fetched by _apiBackedFirestore.onSnapshot
+                    // Immediately set basic user data from auth object
                     currentUserData = {
                         uid: user.uid,
                         email: user.email,
                         accessToken: user.accessToken, // Store accessToken here
                         refreshToken: user.refreshToken, // Also store refreshToken here
-                        fullName: currentUserData ? currentUserData.fullName : 'N/A', // Preserve if already set
+                        fullName: currentUserData ? currentUserData.fullName : 'N/A', // Preserve existing if any
                         phoneNumber: currentUserData ? currentUserData.phoneNumber : 'N/A',
                         country: currentUserData ? currentUserData.country : 'N/A',
                         bio: currentUserData ? currentUserData.bio : 'No bio provided.'
@@ -2662,39 +2663,48 @@
                                 bio: 'No bio provided.'
                             };
                         }
-                        updateHeaderNav(); // Update header (e.g., profile initials)
-                        if (currentPage === 'profile') loadProfileContent();
-                        if (currentPage === 'settings') loadSettingsContent();
-                    }, (error) => { console.error("User data API snapshot error (profile):", error); });
 
-                    // API Call: Retrieve User Properties List (Method: GET)
-                    // URL: ${API_BASE_URL}/users/{userId}/properties
-                    // Called by _apiBackedFirestore.onSnapshot for properties data.
-                    _apiBackedFirestore.onSnapshot(_apiBackedFirestore.collection(null, `artifacts/${CANVAS_APP_ID}/users/${CURRENT_USER_ID}/user_properties`), (snapshot) => {
-                        userProperties = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                        updateHeaderNav(); // Update header
-                        if (currentPage === 'profile') loadProfileContent();
-                    }, (error) => { console.error("Properties data API snapshot error:", error); });
-
-
-                    // After authentication (either explicit login/signup or Canvas token),
-                    // determine where to navigate IF the user is currently on a public page (home, auth, features, pricing).
-                    // This prevents navigating away if they're already on a dashboard or settings page.
-                    if (['home', 'auth', 'features', 'pricing'].includes(currentPage)) {
-                        // Give it a brief moment for the initial API calls/polling to populate currentUserData
-                        setTimeout(() => {
-                            // A simple check for profile completion: assumes `fullName` is mandatory after initial signup
+                        // --- Initial Redirection Logic (only once after authentication) ---
+                        // This block should only execute the *first time* the profile data is fetched after authentication.
+                        if (!initialAuthCheckDone) {
                             const hasUserDetailsSaved = !!currentUserData && !!currentUserData.fullName && currentUserData.fullName !== 'N/A';
 
                             if (!hasUserDetailsSaved) {
-                                // If no user details are saved (e.g., after initial signup or first Canvas auth), go to details page
                                 renderPage('userDetails');
                             } else {
-                                // If user details exist, go to their profile/dashboard
                                 renderPage('profile');
                             }
-                        }, 50); // Small delay to allow initial API fetches
-                    }
+                            initialAuthCheckDone = true; // Mark as done to prevent re-execution on subsequent updates
+                        }
+
+                        updateHeaderNav(); // Always update header after profile data (for name/email)
+                        if (currentPage === 'profile') loadProfileContent(); // Re-load if already on profile to reflect updates
+                        if (currentPage === 'settings') loadSettingsContent(); // Re-load if on settings
+                    }, (error) => {
+                        console.error("User data API snapshot error (profile):", error);
+                        // Handle critical errors, e.g., force logout if token is truly invalid
+                        if (error.message.includes('Authentication required') || error.message.includes('Failed to fetch user profile')) {
+                             // Only force logout if not already on login/signup page to prevent loop
+                             if (!['auth', 'home'].includes(currentPage)) {
+                                showMessageBox("Session Expired", "Your session has expired. Please log in again.", 'alert', () => userApi.signOut());
+                             }
+                        }
+                    });
+
+                    // Set up onSnapshot listener for user properties
+                    _apiBackedFirestore.onSnapshot(_apiBackedFirestore.collection(null, `artifacts/${CANVAS_APP_ID}/users/${CURRENT_USER_ID}/user_properties`), (snapshot) => {
+                        userProperties = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                        // No need to call updateHeaderNav here, as profile listener already does it
+                        if (currentPage === 'profile') loadProfileContent(); // Re-load if already on profile
+                    }, (error) => {
+                        console.error("Properties data API snapshot error:", error);
+                        // Similar error handling for properties
+                        if (error.message.includes('Authentication required') || error.message.includes('Failed to fetch properties')) {
+                             if (!['auth', 'home'].includes(currentPage)) {
+                                showMessageBox("Session Expired", "Your session has expired. Please log in again.", 'alert', () => userApi.signOut());
+                             }
+                        }
+                    });
 
                 } else {
                     // User is NOT authenticated (explicitly logged out, or no session/token)
@@ -2702,6 +2712,7 @@
                     CURRENT_USER_ID = null;
                     currentUserData = null; // Clear user data in memory
                     userProperties = []; // Clear properties in memory
+                    initialAuthCheckDone = false; // Reset flag for next authentication attempt
 
                     // Clear any active polling intervals
                     for (const key in apiPollingIntervals) {
@@ -2721,14 +2732,18 @@
             });
 
             // 3. Trigger the initial authentication state check for Canvas.
-            // This is done once after the DOM and listener setup.
+            // This will cause the onAuthStateChanged listener above to fire.
             if (CANVAS_INITIAL_AUTH_TOKEN) {
-                // Using a small timeout here to ensure onAuthStateChanged is fully registered
-                // before this potential synchronous user update from the token.
                 setTimeout(() => {
                     _mockAuth.signInWithCustomToken(CANVAS_INITIAL_AUTH_TOKEN);
                 }, 0);
+            } else {
+                // If no Canvas token, sign in anonymously to ensure CURRENT_USER_ID is set
+                // for API calls even if unauthenticated, if backend permits.
+                // If the backend strictly requires a logged-in user, this might still error for some calls.
+                _mockAuth.signInAnonymously();
             }
+
 
             // Attach all event listeners to the DOM once it's ready.
             attachGlobalEventListeners();
