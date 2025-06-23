@@ -221,7 +221,7 @@
         - Viz/Presentation: Form inputs for profile fields, static text for read-only.
         - Interaction: Form submission to update profile.
         - Justification: Standard settings layout for managing user information.
-        - Library/Method: HTML/CSS (Tailwind), JS for form handling.
+        - Library/Method: HTML/CSS (Tailwind).
     - **Features/Pricing Pages:**
         - Report Info: Product capabilities, pricing tiers.
         - Goal: Inform, Compare (Pricing)
@@ -351,7 +351,7 @@
         </section>
 
         <!-- User Details Page Section -->
-        <section id="userDetails-page" class="page-section w-full"> <!-- Corrected ID: from user-details-page to userDetails-page -->
+        <section id="userDetails-page" class="page-section w-full">
             <div class="container-card max-w-3xl w-full">
                 <h1 class="text-4xl font-bold text-gray-800 mb-8 text-center">Complete Your Profile</h1>
                 <p class="text-lg text-gray-600 mb-8 text-center">Let's get you set up to start managing your properties.</p>
@@ -778,7 +778,7 @@
                     <nav class="-mb-px flex space-x-8" aria-label="Tabs">
                         <button id="settings-tab-profile" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg border-blue-600 text-blue-600">Profile</button>
                         <button id="settings-tab-subscription" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">Subscription</button>
-                        <button id="settings-tab-integrations" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">Integrations</button> <!-- Corrected ID: from settings-tab-notifications to settings-tab-integrations -->
+                        <button id="settings-tab-integrations" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">Integrations</button>
                     </nav>
                 </div>
 
@@ -989,13 +989,15 @@
         // mirroring what a real Firebase Auth SDK would do after API calls.
         const _mockAuth = {
             _authListeners: [],
-            _currentUser: null, // { uid: string, email: string, accessToken: string, isAnonymous: boolean, isCanvasUser: boolean }
+            // Added refreshToken to _currentUser structure
+            _currentUser: null, // { uid: string, email: string, accessToken: string, refreshToken: string, isAnonymous: boolean, isCanvasUser: boolean }
             _updateUser(user) {
                 // Ensure user object always has a consistent structure with defaults
                 const newUserState = {
                     uid: user ? user.uid : null,
                     email: user ? user.email : null,
                     accessToken: user ? user.accessToken : null,
+                    refreshToken: user ? user.refreshToken : null, // Store refresh token
                     isAnonymous: user ? user.isAnonymous : false,
                     isCanvasUser: user ? user.isCanvasUser : false,
                 };
@@ -1020,7 +1022,7 @@
             signInAnonymously() {
                 return new Promise(resolve => {
                     const uid = generateUniqueId();
-                    this._updateUser({ uid: uid, email: `anonymous-${uid}@example.com`, accessToken: null, isAnonymous: true });
+                    this._updateUser({ uid: uid, email: `anonymous-${uid}@example.com`, accessToken: null, refreshToken: null, isAnonymous: true });
                     resolve({ user: this._currentUser }); // Resolve with the current user object
                 });
             },
@@ -1029,7 +1031,7 @@
                 return new Promise(resolve => {
                     const uid = `canvas-user-${token.substring(0, 8)}`; // Generate a mock UID from the token
                     // Update internal user state, marking as Canvas user and providing the token
-                    this._updateUser({ uid: uid, email: `canvas-${uid}@example.com`, accessToken: token, isAnonymous: false, isCanvasUser: true });
+                    this._updateUser({ uid: uid, email: `canvas-${uid}@example.com`, accessToken: token, refreshToken: null, isAnonymous: false, isCanvasUser: true });
                     resolve({ user: this._currentUser }); // Resolve with the current user object
                 });
             },
@@ -1098,17 +1100,21 @@
                         body: JSON.stringify({ email, password }),
                     });
 
+                    // Log the full response for debugging before parsing JSON
+                    console.log('Login API Response:', response);
+
                     const result = await response.json();
                     if (!response.ok || !result.success) {
                         throw new Error(result.message || 'Login failed: An unknown error occurred.');
                     }
 
                     if (result.data && result.data.user && result.data.session) {
-                        // Update _mockAuth with the actual user ID, email, and session token
+                        // Update _mockAuth with the actual user ID, email, and session tokens
                         _mockAuth._updateUser({
                             uid: result.data.user.id,
                             email: result.data.user.email,
                             accessToken: result.data.session.access_token, // Access token is under session.access_token
+                            refreshToken: result.data.session.refresh_token, // Store refresh token
                             isAnonymous: false
                         });
                         return { success: true, user: result.data.user };
@@ -1165,6 +1171,9 @@
                         body: JSON.stringify({ email, password }),
                     });
 
+                    // Log the full response for debugging before parsing JSON
+                    console.log('Signup API Response:', response);
+
                     const result = await response.json();
                     if (!response.ok || !result.success) {
                         throw new Error(result.message || 'Signup failed: An unknown error occurred.');
@@ -1172,10 +1181,13 @@
 
                     if (result.data && result.data.id && result.data.session) {
                         // Update _mockAuth with the actual user ID, email, and session token
+                        // Note: Assuming signup API might not immediately return a refresh token,
+                        // if it does, it should be stored similarly to login.
                         _mockAuth._updateUser({
                             uid: result.data.id,
                             email: result.data.email,
                             accessToken: result.data.session, // Signup response uses 'session' directly for token
+                            refreshToken: null, // Assume no refresh token from signup initially
                             isAnonymous: false
                         });
                         return { success: true, user: { uid: result.data.id, email: result.data.email } };
@@ -1230,6 +1242,10 @@
                             'Authorization': `Bearer ${accessToken}`
                         }
                     });
+
+                    // Log the full response for debugging before parsing JSON
+                    console.log('Get User Profile API Response:', response);
+
                     const result = await response.json();
                     if (!response.ok || !result.success) {
                         throw new Error(result.message || 'Failed to fetch user profile.');
@@ -1286,6 +1302,10 @@
                         },
                         body: JSON.stringify(profileData)
                     });
+
+                    // Log the full response for debugging before parsing JSON
+                    console.log('Save User Profile API Response:', response);
+
                     const result = await response.json();
                     if (!response.ok || !result.success) {
                         throw new Error(result.message || 'Failed to save user profile.');
@@ -1358,6 +1378,10 @@
                         },
                         body: JSON.stringify(propertyData)
                     });
+
+                    // Log the full response for debugging before parsing JSON
+                    console.log('Add Property API Response:', response);
+
                     const result = await response.json();
                     if (!response.ok || !result.success) {
                         throw new Error(result.message || 'Failed to add property.');
@@ -1420,6 +1444,10 @@
                         },
                         body: JSON.stringify(propertyData)
                     });
+
+                    // Log the full response for debugging before parsing JSON
+                    console.log('Update Property API Response:', response);
+
                     const result = await response.json();
                     if (!response.ok || !result.success) {
                         throw new Error(result.message || 'Failed to update property.');
@@ -1467,6 +1495,10 @@
                             'Authorization': `Bearer ${accessToken}`
                         }
                     });
+
+                    // Log the full response for debugging before parsing JSON
+                    console.log('Delete Property API Response:', response);
+
                     const result = await response.json(); // Even DELETE might return a success message
                     if (!response.ok || !result.success) {
                         throw new Error(result.message || 'Failed to delete property.');
@@ -1520,6 +1552,10 @@
                             'Authorization': `Bearer ${accessToken}`
                         }
                     });
+
+                    // Log the full response for debugging before parsing JSON
+                    console.log('Get User Properties API Response:', response);
+
                     const result = await response.json();
                     if (!response.ok || !result.success) {
                         throw new Error(result.message || 'Failed to fetch properties.');
@@ -2215,7 +2251,7 @@
             try {
                 if (propertyId) {
                     // API Call: Update Existing Property (Method: PUT)
-                    // URL: ${API_BASE_URL}/users/{userId}/properties/{propertyId}
+                    // URL: https://us-central1-airbnb-safety-checklist.cloudfunctions.net/checklistCrudAPI/users/{userId}/properties/{propertyId}
                     // Request Body: {nickname, type, address, city, state, zip, country, bedrooms, bathrooms, occupancy, updatedAt}
                     // Expected Response: {success: true, message: "..."}
                     await propertyApi.updateProperty(CURRENT_USER_ID, propertyId, propertyData, _mockAuth._currentUser.accessToken);
@@ -2223,7 +2259,7 @@
                 } else {
                     propertyData.createdAt = new Date().toISOString();
                     // API Call: Add New Property (Method: POST)
-                    // URL: ${API_BASE_URL}/users/{userId}/properties
+                    // URL: https://us-central1-airbnb-safety-checklist.cloudfunctions.net/checklistCrudAPI/users/{userId}/properties
                     // Request Body: {nickname, type, address, city, state, zip, country, bedrooms, bathrooms, occupancy, createdAt}
                     // Expected Response: {success: true, data: {id: "..."}}
                     await propertyApi.addProperty(CURRENT_USER_ID, propertyData, _mockAuth._currentUser.accessToken);
@@ -2256,7 +2292,7 @@
                     }
                     try {
                         // API Call: Delete Property (Method: DELETE)
-                        // URL: ${API_BASE_URL}/users/{userId}/properties/{propertyId}
+                        // URL: https://us-central1-airbnb-safety-checklist.cloudfunctions.net/checklistCrudAPI/users/{userId}/properties/{propertyId}
                         // Request Body: {} (empty)
                         // Expected Response: {success: true, message: "..."}
                         await propertyApi.deleteProperty(CURRENT_USER_ID, propertyId, _mockAuth._currentUser.accessToken);
@@ -2504,7 +2540,7 @@
             const updateProfileForm = getElement('updateProfileForm');
             const settingsTabProfile = getElement('settings-tab-profile');
             const settingsTabSubscription = getElement('settings-tab-subscription');
-            const settingsTabIntegrations = getElement('settings-tab-integrations'); // Corrected reference
+            const settingsTabIntegrations = getElement('settings-tab-integrations');
             const changePasswordBtn = getElement('changePasswordBtn');
             const enableTwoFactorBtn = getElement('enableTwoFactorBtn');
 
@@ -2514,7 +2550,7 @@
             }
             if (settingsTabProfile) settingsTabProfile.onclick = handleSettingsTabClick;
             if (settingsTabSubscription) settingsTabSubscription.onclick = handleSettingsTabClick;
-            if (settingsTabIntegrations) settingsTabIntegrations.onclick = handleSettingsTabClick; // Corrected reference
+            if (settingsTabIntegrations) settingsTabIntegrations.onclick = handleSettingsTabClick;
             if (changePasswordBtn) changePasswordBtn.onclick = handleChangePassword;
             if (enableTwoFactorBtn) enableTwoFactorBtn.onclick = handleEnableTwoFactor;
         }
@@ -2559,11 +2595,43 @@
                         uid: user.uid,
                         email: user.email,
                         accessToken: user.accessToken, // Store accessToken here
+                        refreshToken: user.refreshToken, // Also store refreshToken here
                         fullName: currentUserData ? currentUserData.fullName : 'N/A', // Preserve if already set
                         phoneNumber: currentUserData ? currentUserData.phoneNumber : 'N/A',
                         country: currentUserData ? currentUserData.country : 'N/A',
                         bio: currentUserData ? currentUserData.bio : 'No bio provided.'
                     };
+
+                    // In a production application, you would implement a token refresh mechanism here.
+                    // This typically involves checking if the accessToken is near expiry.
+                    // If it is, you would use the refreshToken to call a backend endpoint
+                    // to obtain a new access_token and refresh_token pair.
+                    // Example (conceptual, requires backend support for /refreshToken endpoint):
+                    // if (user.accessTokenIsExpiringSoon() && user.refreshToken) {
+                    //    try {
+                    //        // Assuming an API endpoint like: POST /refreshToken with { refreshToken: user.refreshToken }
+                    //        const refreshResponse = await fetch(`${API_BASE_URL}/refreshToken`, {
+                    //            method: 'POST',
+                    //            headers: { 'Content-Type': 'application/json' },
+                    //            body: JSON.stringify({ refreshToken: user.refreshToken })
+                    //        });
+                    //        const refreshResult = await refreshResponse.json();
+                    //        if (refreshResponse.ok && refreshResult.success && refreshResult.data.session) {
+                    //            _mockAuth._updateUser({
+                    //                ...user,
+                    //                accessToken: refreshResult.data.session.access_token,
+                    //                refreshToken: refreshResult.data.session.refresh_token
+                    //            });
+                    //            console.log("Access token refreshed successfully.");
+                    //        } else {
+                    //            console.error("Token refresh failed:", refreshResult.message || "Unknown error");
+                    //            userApi.signOut(); // Force logout if refresh fails
+                    //        }
+                    //    } catch (refreshError) {
+                    //        console.error("Network error during token refresh:", refreshError);
+                    //        userApi.signOut(); // Force logout on network issues during refresh
+                    //    }
+                    // }
 
 
                     // Unsubscribe previous polling intervals if they exist (important for re-login or switching users)
@@ -2587,7 +2655,7 @@
                         } else {
                             // If profile doesn't exist, ensure fields are cleared/defaulted
                             currentUserData = {
-                                ...currentUserData, // Keep UID, email, accessToken from auth
+                                ...currentUserData, // Keep UID, email, accessToken, refreshToken from auth
                                 fullName: 'N/A',
                                 phoneNumber: 'N/A',
                                 country: 'N/A',
